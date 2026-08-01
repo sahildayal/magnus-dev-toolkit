@@ -40,6 +40,12 @@ jobs:
           $config | ConvertTo-Json | Out-File state/user-config.json -Encoding UTF8
           Write-Host "user-config.json written"
 
+      - name: Verify install.ps1 entry point resolves (guards the advertised one-liner)
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -ResolveOnly
+          if ($LASTEXITCODE -ne 0) { throw "FAIL: install.ps1 could not resolve its phase scripts" }
+
       - name: Phase 1 - Machine Detection (pre-install baseline)
         shell: pwsh
         run: powershell -ExecutionPolicy Bypass -File scripts/phases/phase-1-detect.ps1
