@@ -12,7 +12,7 @@ $manifest = Get-Content $manifestPath | ConvertFrom-Json
 foreach ($tool in $manifest.tools) {
   $installed = & { Get-Command $tool.command -ErrorAction SilentlyContinue }
   if ($installed) {
-    $state.detected[$tool.name] = $installed.Version.ToString()
+    $state.detected[$tool.name] = if ($installed.Version) { $installed.Version.ToString() } else { "unknown" }
   } else {
     $state.missing += $tool.name
   }
