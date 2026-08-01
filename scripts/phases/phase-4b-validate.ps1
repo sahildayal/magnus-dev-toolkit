@@ -28,12 +28,16 @@ foreach ($name in ($mcpConfig.mcpServers | Get-Member -MemberType NoteProperty).
         continue
     }
 
-    # Check the target file exists
-    $targetFile = $server.args[0]
-    if (-not (Test-Path $targetFile)) {
-        Write-Host "  FAIL [$name] -> entry point not found: $targetFile" -ForegroundColor Red
-        $failed += $name
-        continue
+    # Check the entry point exists - only meaningful when command is "node" and args[0]
+    # is a literal file path. For uvx/npx/docker, args[0] is a package name or flag
+    # (e.g. "-y", "mcp-server-git") resolved via PATH/registry at spawn time, not a path.
+    if ($server.command -eq "node") {
+        $targetFile = $server.args[0]
+        if (-not (Test-Path $targetFile)) {
+            Write-Host "  FAIL [$name] -> entry point not found: $targetFile" -ForegroundColor Red
+            $failed += $name
+            continue
+        }
     }
 
     # Spawn the MCP process and send an MCP initialize handshake via stdio

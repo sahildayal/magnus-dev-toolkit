@@ -144,7 +144,9 @@ if ($unreachable.Count -eq 0) {
 Write-Host ""
 
 # -- Install each MCP globally via npm ----------------------------------------
-$npmGlobal = "$env:APPDATA\npm"
+# Never assume npm's global root is %APPDATA%\npm - actions/setup-node (and other
+# environments) can relocate it. Ask npm directly instead.
+$npmGlobalRoot = (& npm root -g 2>&1 | Select-Object -Last 1).Trim()
 $mcpServers = @{}
 $failedMcps = @()
 $failedMcps += $unreachable
@@ -205,7 +207,7 @@ foreach ($id in $toInstall) {
     }
 
     # Resolve the actual installed dist/index.js path from package.json main field
-    $modFolder = "$npmGlobal\node_modules\$($entry.pkg)"
+    $modFolder = "$npmGlobalRoot\$($entry.pkg)"
     $pkgJson   = Get-Content "$modFolder\package.json" -Raw | ConvertFrom-Json
     $mainEntry = $pkgJson.main
     if (-not $mainEntry) { $mainEntry = "dist/index.js" }
@@ -252,15 +254,10 @@ if ($dockerGatewayAvailable) {
     Write-Host "  OK docker MCP Gateway configured" -ForegroundColor Green
 }
 
-# Pre-register mcp-router entry (installed in phase 5)
-$mcpRouterPath = "$env:USERPROFILE\.local\lib\mcp-servers\mcp-router\src\index.js"
-$mcpServers["mcp-router"] = @{
-    command = "node"
-    args    = @($mcpRouterPath)
-    env     = @{
-        MCP_ROUTER_CONFIG = "$env:USERPROFILE\.config\magnus\mcp-manifest.json"
-    }
-}
+# mcp-router is NOT pre-registered here - it isn't installed until Phase 5, which adds
+# its own correct entry (with the actual installed path) after really installing it.
+# Pre-registering a not-yet-real path here made Phase 4b validate a file that couldn't
+# exist yet, guaranteeing a false failure on every run.
 
 # -- Save master config -------------------------------------------------------
 $configDir = "$env:USERPROFILE\.config\magnus"

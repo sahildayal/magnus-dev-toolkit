@@ -113,10 +113,12 @@ jobs:
           $path = "state/mcp-validation.json"
           if (-not (Test-Path $path)) { throw "FAIL: mcp-validation.json not found" }
           $v = Get-Content $path | ConvertFrom-Json
-          Write-Host "PASS: Validation results:"
+          Write-Host "Validation results:"
           Write-Host "  Passed : $($v.passed)"
           Write-Host "  Skipped: $($v.skipped)"
           Write-Host "  Failed : $($v.failed)"
+          if ($v.failed.Count -gt 0) { throw "FAIL: $($v.failed.Count) MCP(s) failed Phase 4b validation: $($v.failed -join ', ')" }
+          Write-Host "PASS: no MCPs failed validation"
 
       - name: Phase 5 - mcp-router install
         shell: pwsh
