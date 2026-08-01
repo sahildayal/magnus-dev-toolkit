@@ -48,6 +48,14 @@ $mcpRegistry = @{
     chrome     = @{ installer = "npx";  pkg = "chrome-devtools-mcp";                      needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     filesystem = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-filesystem";  needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     memory     = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-memory";      needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    # git: NOT auto-installed. As of 2026-08-01, mcp-server-git on PyPI is broken - it
+    # decorates with @server.list_tools(), but the `mcp` SDK version uv resolves no
+    # longer has that attribute on Server (AttributeError at runtime, inside serve()
+    # so it only surfaces on a real launch - `--help` exits before reaching that code,
+    # which is why the Phase 4 prefetch missed it). Same class of upstream dependency-
+    # version-mismatch bug as mcp-server-fetch below, not fixable here. Kept in the
+    # registry to re-enable once upstream publishes a fix - add "git" to the
+    # always-included list below.
     git        = @{ installer = "uvx";  pkg = "mcp-server-git";                           needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     # fetch: NOT auto-installed. As of 2026-08-01, mcp-server-fetch on PyPI is broken -
     # its `mcp` SDK dependency resolves to a version that renamed McpError to MCPError,
@@ -66,7 +74,7 @@ if ($userConfig.mcps.playwright) { $toInstall += "playwright" }
 if ($userConfig.mcps.figma)      { $toInstall += "figma" }
 if ($userConfig.mcps.sentry)     { $toInstall += "sentry" }
 if ($userConfig.mcps.chrome)     { $toInstall += "chrome" }
-$toInstall += @("filesystem", "memory", "git")   # always included - see note above re: fetch
+$toInstall += @("filesystem", "memory")   # always included - see notes above re: git/fetch
 
 # Check Docker MCP Gateway separately (requires Docker Desktop 4.59+)
 # Source: https://github.com/docker/mcp-gateway
@@ -190,7 +198,10 @@ foreach ($id in $toInstall) {
         # headless: works without a display (CI, servers). isolated: throwaway profile,
         # avoids leftover-state issues on repeat runs. no-usage-statistics: opt out of
         # Google's telemetry by default, matching this project's no-hidden-tracking stance.
-        $mcpServers[$id] = @{ command = "npx"; args = @("-y", "$($entry.pkg)@latest", "--headless", "--isolated", "--no-usage-statistics") }
+        # command is "npx.cmd", not bare "npx" - on Windows, npx is a .cmd shim, and
+        # process-spawning APIs that bypass the shell (used by MCP clients and our own
+        # Phase 4b validator) can't resolve it without the explicit extension.
+        $mcpServers[$id] = @{ command = "npx.cmd"; args = @("-y", "$($entry.pkg)@latest", "--headless", "--isolated", "--no-usage-statistics") }
         Write-Host "  OK $id ready -> npx $($entry.pkg)@latest" -ForegroundColor Green
         continue
     }
