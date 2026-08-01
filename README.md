@@ -7,9 +7,9 @@ A one-command developer bootstrap system for AI-native engineers. Automates tool
 ## 🌟 Key Features
 
 ✅ **Zero Manual Setup** — Interactive prompt once, then fully automated.  
-✅ **40+ Dev Tools** — Installed via `winget` and `npm` (Python, Node.js, Go, Rust, Docker, cloud CLIs).  
+✅ **44 Dev Tools** — 15 always-on core CLI tools (Git, GitHub CLI, VS Code, ripgrep, fzf, bat, jq, lazygit, etc.), 13 opt-in power tools (Postman, Terraform, Helm, k9s, DBeaver, etc.), and 16 language/container/cloud tools selected in the wizard — installed via `winget` and `npm`.  
 ✅ **11 Pre-Configured MCPs** — GitHub, PostgreSQL, Playwright, Figma, Sentry, Puppeteer, Filesystem, Memory + mcp-router.  
-✅ **Intelligent Routing (`mcp-router`)** — Recommends the best MCP per task using capability, cost, and budget scoring.  
+✅ **Intelligent Routing (`mcp-router`)** — Recommends the best MCP per task using capability, keyword, and cost scoring.  
 ✅ **Multi-CLI Compatible** — Writes correct config to each CLI in its own native format.
 
 ---
@@ -76,7 +76,7 @@ Each CLI gets its config written in the correct format to the correct path:
 ## 🧠 mcp-router Scoring
 
 ```
-Score = (Capability Match × 40%) + (Keyword Match × 30%) + (Cost Efficiency × 20%) + (Budget Available × 10%)
+Score = (Capability Match × 50%) + (Keyword Match × 30%) + (Cost Efficiency × 20%)
 ```
 
 ---
@@ -87,13 +87,14 @@ The CI runs a full end-to-end test on a **fresh `windows-latest` GitHub Actions 
 
 [![E2E Install Test](https://github.com/sahildayal/magnus-dev-toolkit/actions/workflows/test-install.yml/badge.svg)](https://github.com/sahildayal/magnus-dev-toolkit/actions/workflows/test-install.yml)
 
-The test validates:
+The test does a **real install** of a representative subset on a fresh Windows runner (all 15 core tools, Python, kubectl, GitHub MCP — Docker Desktop is excluded since it needs virtualization hosted runners don't expose) and validates:
 - Each phase script runs without errors
+- The installed core tools are actually on `PATH` afterward
 - `~/.gemini/settings.json` contains `mcpServers.github`
 - `~/.config/cline/cline_mcp_config.json` is created
 - `~/.codex/config.toml` contains TOML `[mcp_servers.github]` block
-- `budget-tracker.json` is initialized with `spent: 0`
 - MCP validation results are saved to `state/mcp-validation.json`
+- `mcp-router`'s `recommend_mcp` returns a real, correctly-scored recommendation via an actual stdio call
 
 ---
 
@@ -105,7 +106,6 @@ The test validates:
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design overview |
 | [MCP_CONFIGURATION.md](docs/MCP_CONFIGURATION.md) | Per-CLI config details |
 | [MCP_ROUTER_GUIDE.md](docs/MCP_ROUTER_GUIDE.md) | How routing works |
-| [COST_TRACKING.md](docs/COST_TRACKING.md) | Budget monitoring |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues |
 | [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) | Contributing |
 

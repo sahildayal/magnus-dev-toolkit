@@ -158,7 +158,6 @@ $mcpServers["mcp-router"] = @{
     args    = @($mcpRouterPath)
     env     = @{
         MCP_ROUTER_CONFIG = "$env:USERPROFILE\.config\magnus\mcp-manifest.json"
-        BUDGET_TRACKER    = "$env:USERPROFILE\.config\magnus\budget-tracker.json"
     }
 }
 
@@ -167,18 +166,6 @@ $configDir = "$env:USERPROFILE\.config\magnus"
 if (-not (Test-Path $configDir)) { New-Item -ItemType Directory -Path $configDir -Force | Out-Null }
 $masterConfig = @{ mcpServers = $mcpServers }
 $masterConfig | ConvertTo-Json -Depth 10 | Out-File "$configDir\mcp-config.json" -Encoding UTF8
-
-# -- Initialize budget-tracker.json (fresh install only) ---------------------
-$budgetTrackerPath = "$configDir\budget-tracker.json"
-if (-not (Test-Path $budgetTrackerPath)) {
-    $resetDate = (Get-Date).AddMonths(1).ToString("yyyy-MM-01")
-    @{
-        gemini = @{ monthlyLimit = 20; spent = 0; resetDate = $resetDate }
-        claude = @{ monthlyLimit = 20; spent = 0; resetDate = $resetDate }
-        codex  = @{ monthlyLimit = 20; spent = 0; resetDate = $resetDate }
-    } | ConvertTo-Json | Out-File $budgetTrackerPath -Encoding UTF8
-    Write-Host "  OK budget-tracker.json initialized" -ForegroundColor Green
-}
 
 # -- Write CLI-specific configs with evidence-based paths and formats ---------
 #

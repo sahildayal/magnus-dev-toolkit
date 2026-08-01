@@ -33,6 +33,21 @@ $userConfig = @{
     sentry = $false
     chrome = $false
   }
+  extras = @{
+    postman = $false
+    httpie = $false
+    dbeaver = $false
+    mongosh = $false
+    terraform = $false
+    helm = $false
+    k9s = $false
+    minikube = $false
+    ngrok = $false
+    mkcert = $false
+    direnv = $false
+    neovim = $false
+    starship = $false
+  }
 }
 
 function Show-Menu {
@@ -85,10 +100,31 @@ $selectedMcps | ForEach-Object {
   elseif ($_ -eq "Chrome") { $userConfig.mcps.chrome = $true }
 }
 
+Write-Host ""
+Write-Host "🧰 Any optional power tools you want? (skip anything you don't need)" -ForegroundColor Yellow
+$extraOptions = @("Postman", "HTTPie", "DBeaver", "MongoDB Shell", "Terraform", "Helm", "k9s", "Minikube", "ngrok", "mkcert", "direnv", "Neovim", "Starship")
+$selectedExtras = Show-Menu $extraOptions
+
+$selectedExtras | ForEach-Object {
+  if ($_ -eq "Postman") { $userConfig.extras.postman = $true }
+  elseif ($_ -eq "HTTPie") { $userConfig.extras.httpie = $true }
+  elseif ($_ -eq "DBeaver") { $userConfig.extras.dbeaver = $true }
+  elseif ($_ -eq "MongoDB Shell") { $userConfig.extras.mongosh = $true }
+  elseif ($_ -eq "Terraform") { $userConfig.extras.terraform = $true }
+  elseif ($_ -eq "Helm") { $userConfig.extras.helm = $true }
+  elseif ($_ -eq "k9s") { $userConfig.extras.k9s = $true }
+  elseif ($_ -eq "Minikube") { $userConfig.extras.minikube = $true }
+  elseif ($_ -eq "ngrok") { $userConfig.extras.ngrok = $true }
+  elseif ($_ -eq "mkcert") { $userConfig.extras.mkcert = $true }
+  elseif ($_ -eq "direnv") { $userConfig.extras.direnv = $true }
+  elseif ($_ -eq "Neovim") { $userConfig.extras.neovim = $true }
+  elseif ($_ -eq "Starship") { $userConfig.extras.starship = $true }
+}
+
 # Save user config for later phases
 $stateDir = "$PSScriptRoot\..\..\state"
 if (-not (Test-Path $stateDir)) { New-Item -ItemType Directory -Path $stateDir -Force | Out-Null }
-$userConfig | ConvertTo-Json | Out-File "$stateDir\user-config.json"
+$userConfig | ConvertTo-Json | Out-File "$stateDir\user-config.json" -Encoding UTF8
 
 Write-Host ""
 Write-Host "OK Configuration saved" -ForegroundColor Green

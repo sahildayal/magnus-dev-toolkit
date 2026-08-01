@@ -28,17 +28,15 @@ if (Test-Path $mcpConfigPath) {
         args = @("$mcpRouterPath\src\index.js")
         env = @{
             MCP_ROUTER_CONFIG = "$env:USERPROFILE\.config\magnus\mcp-manifest.json"
-            BUDGET_TRACKER = "$env:USERPROFILE\.config\magnus\budget-tracker.json"
         }
     } -Force
 
-    $mcpConfig | ConvertTo-Json -Depth 10 | Out-File $mcpConfigPath
+    $mcpConfig | ConvertTo-Json -Depth 10 | Out-File $mcpConfigPath -Encoding UTF8
 }
 
 # Ensure configs exist in user profile
 $configPath = "$env:USERPROFILE\.config\magnus"
 if (-not (Test-Path $configPath)) { New-Item -ItemType Directory -Path $configPath -Force | Out-Null }
 Copy-Item "$PSScriptRoot\..\..\config\mcp-manifest.json" -Destination "$configPath\mcp-manifest.json" -Force
-Copy-Item "$PSScriptRoot\..\..\config\budget-tracker.json" -Destination "$configPath\budget-tracker.json" -Force
 
 Write-Host "OK Phase 5 (mcp-router) installed" -ForegroundColor Green

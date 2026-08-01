@@ -20,7 +20,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "recommend_mcp",
-        description: "Recommends the best MCP server for a given task, based on capability, cost, and budget.",
+        description: "Recommends the best MCP server for a given task, based on capability, keyword match, and cost efficiency.",
         inputSchema: {
           type: "object",
           properties: {

@@ -20,6 +20,6 @@ foreach ($tool in $manifest.tools) {
 
 $stateDir = "$PSScriptRoot\..\..\state"
 if (-not (Test-Path $stateDir)) { New-Item -ItemType Directory -Path $stateDir -Force | Out-Null }
-$state | ConvertTo-Json | Out-File "$stateDir\installation-state.json"
+$state | ConvertTo-Json | Out-File "$stateDir\installation-state.json" -Encoding UTF8
 
 Write-Host "OK Phase 1 (Detection) completed" -ForegroundColor Green

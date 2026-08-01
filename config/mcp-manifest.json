@@ -52,10 +52,5 @@
         "reasoning": "Claude performs well with complex UI automation reasoning"
       }
     }
-  ],
-  "budgetTracking": {
-    "gemini": { "monthlyLimit": 20, "spent": 3.45 },
-    "claude": { "monthlyLimit": 20, "spent": 0 },
-    "codex": { "monthlyLimit": 20, "spent": 0 }
-  }
+  ]
 }

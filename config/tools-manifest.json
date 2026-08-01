@@ -1,76 +1,52 @@
 {
   "tools": [
-    {
-      "name": "Python 3.11+",
-      "command": "python",
-      "installer": "winget",
-      "package_id": "Python.Python.3.13"
-    },
-    {
-      "name": "Node.js 20+",
-      "command": "node",
-      "installer": "winget",
-      "package_id": "OpenJS.NodeJS"
-    },
-    {
-      "name": "Java 17+",
-      "command": "java",
-      "installer": "winget",
-      "package_id": "Oracle.JDK.17"
-    },
-    {
-      "name": "Go",
-      "command": "go",
-      "installer": "winget",
-      "package_id": "GoLang.Go"
-    },
-    {
-      "name": "Rust",
-      "command": "rustc",
-      "installer": "winget",
-      "package_id": "Rustlang.Rustup"
-    },
-    {
-      "name": "C/C++",
-      "command": "gcc",
-      "installer": "winget",
-      "package_id": "Microsoft.VisualStudio.2022.BuildTools"
-    },
-    {
-      "name": "C#/.NET",
-      "command": "dotnet",
-      "installer": "winget",
-      "package_id": "Microsoft.DotNet.SDK.8"
-    },
-    {
-      "name": "Docker Desktop",
-      "command": "docker",
-      "installer": "winget",
-      "package_id": "Docker.DockerDesktop"
-    },
-    {
-      "name": "Kubernetes CLI",
-      "command": "kubectl",
-      "installer": "winget",
-      "package_id": "Kubernetes.kubectl"
-    },
-    {
-      "name": "AWS CLI",
-      "command": "aws",
-      "installer": "winget",
-      "package_id": "Amazon.AWSCLI"
-    },
-    {
-      "name": "Google Cloud SDK",
-      "command": "gcloud",
-      "installer": "winget",
-      "package_id": "Google.CloudSDK"
-    },
-    {
-      "name": "Azure CLI",
-      "command": "az",
-      "installer": "winget",
-      "package_id": "Microsoft.AzureCLI"
-    }
+    { "name": "Python 3.11+", "command": "python", "installer": "winget", "package_id": "Python.Python.3.13", "category": "language", "selectionKey": "tools.python" },
+    { "name": "Node.js 20+", "command": "node", "installer": "winget", "package_id": "OpenJS.NodeJS", "category": "language", "selectionKey": "tools.nodejs" },
+    { "name": "Yarn", "command": "yarn", "installer": "npm", "package_name": "yarn", "category": "language", "selectionKey": "tools.nodejs" },
+    { "name": "pnpm", "command": "pnpm", "installer": "npm", "package_name": "pnpm", "category": "language", "selectionKey": "tools.nodejs" },
+    { "name": "Java 17+", "command": "java", "installer": "winget", "package_id": "Oracle.JDK.17", "category": "language", "selectionKey": "tools.java" },
+    { "name": "Go", "command": "go", "installer": "winget", "package_id": "GoLang.Go", "category": "language", "selectionKey": "tools.go" },
+    { "name": "Rust", "command": "rustc", "installer": "winget", "package_id": "Rustlang.Rustup", "category": "language", "selectionKey": "tools.rust" },
+    { "name": "C/C++", "command": "gcc", "installer": "winget", "package_id": "Microsoft.VisualStudio.2022.BuildTools", "category": "language", "selectionKey": "tools.cpp" },
+    { "name": "CMake", "command": "cmake", "installer": "winget", "package_id": "Kitware.CMake", "category": "language", "selectionKey": "tools.cpp" },
+    { "name": "GNU Make", "command": "make", "installer": "winget", "package_id": "GnuWin32.Make", "category": "language", "selectionKey": "tools.cpp" },
+    { "name": "C#/.NET", "command": "dotnet", "installer": "winget", "package_id": "Microsoft.DotNet.SDK.8", "category": "language", "selectionKey": "tools.csharp" },
+
+    { "name": "Docker Desktop", "command": "docker", "installer": "winget", "package_id": "Docker.DockerDesktop", "category": "container", "selectionKey": "containers.docker" },
+    { "name": "Kubernetes CLI", "command": "kubectl", "installer": "winget", "package_id": "Kubernetes.kubectl", "category": "container", "selectionKey": "containers.kubernetes" },
+
+    { "name": "AWS CLI", "command": "aws", "installer": "winget", "package_id": "Amazon.AWSCLI", "category": "cloud", "selectionKey": "cloud.aws" },
+    { "name": "Google Cloud SDK", "command": "gcloud", "installer": "winget", "package_id": "Google.CloudSDK", "category": "cloud", "selectionKey": "cloud.gcp" },
+    { "name": "Azure CLI", "command": "az", "installer": "winget", "package_id": "Microsoft.AzureCLI", "category": "cloud", "selectionKey": "cloud.azure" },
+
+    { "name": "Git", "command": "git", "installer": "winget", "package_id": "Git.Git", "category": "core" },
+    { "name": "GitHub CLI", "command": "gh", "installer": "winget", "package_id": "GitHub.cli", "category": "core" },
+    { "name": "Visual Studio Code", "command": "code", "installer": "winget", "package_id": "Microsoft.VisualStudioCode", "category": "core" },
+    { "name": "Windows Terminal", "command": "wt", "installer": "winget", "package_id": "Microsoft.WindowsTerminal", "category": "core" },
+    { "name": "PowerShell 7", "command": "pwsh", "installer": "winget", "package_id": "Microsoft.PowerShell", "category": "core" },
+    { "name": "7-Zip", "command": "7z", "installer": "winget", "package_id": "7zip.7zip", "category": "core" },
+    { "name": "jq", "command": "jq", "installer": "winget", "package_id": "jqlang.jq", "category": "core" },
+    { "name": "ripgrep", "command": "rg", "installer": "winget", "package_id": "BurntSushi.ripgrep.MSVC", "category": "core" },
+    { "name": "fzf", "command": "fzf", "installer": "winget", "package_id": "junegunn.fzf", "category": "core" },
+    { "name": "bat", "command": "bat", "installer": "winget", "package_id": "sharkdp.bat", "category": "core" },
+    { "name": "fd", "command": "fd", "installer": "winget", "package_id": "sharkdp.fd", "category": "core" },
+    { "name": "git-delta", "command": "delta", "installer": "winget", "package_id": "dandavison.delta", "category": "core" },
+    { "name": "lazygit", "command": "lazygit", "installer": "winget", "package_id": "JesseDuffield.lazygit", "category": "core" },
+    { "name": "curl", "command": "curl", "installer": "winget", "package_id": "cURL.cURL", "category": "core" },
+    { "name": "Wget", "command": "wget", "installer": "winget", "package_id": "JernejSimoncic.Wget", "category": "core" },
+
+    { "name": "Postman", "command": "postman", "installer": "winget", "package_id": "Postman.Postman", "category": "extra", "selectionKey": "extras.postman" },
+    { "name": "HTTPie", "command": "http", "installer": "winget", "package_id": "HTTPie.HTTPie", "category": "extra", "selectionKey": "extras.httpie" },
+    { "name": "DBeaver", "command": "dbeaver", "installer": "winget", "package_id": "DBeaver.DBeaver.Community", "category": "extra", "selectionKey": "extras.dbeaver" },
+    { "name": "MongoDB Shell", "command": "mongosh", "installer": "winget", "package_id": "MongoDB.Shell", "category": "extra", "selectionKey": "extras.mongosh" },
+    { "name": "Terraform", "command": "terraform", "installer": "winget", "package_id": "Hashicorp.Terraform", "category": "extra", "selectionKey": "extras.terraform" },
+    { "name": "Helm", "command": "helm", "installer": "winget", "package_id": "Helm.Helm", "category": "extra", "selectionKey": "extras.helm" },
+    { "name": "k9s", "command": "k9s", "installer": "winget", "package_id": "Derailed.k9s", "category": "extra", "selectionKey": "extras.k9s" },
+    { "name": "Minikube", "command": "minikube", "installer": "winget", "package_id": "Kubernetes.minikube", "category": "extra", "selectionKey": "extras.minikube" },
+    { "name": "ngrok", "command": "ngrok", "installer": "winget", "package_id": "Ngrok.Ngrok", "category": "extra", "selectionKey": "extras.ngrok" },
+    { "name": "mkcert", "command": "mkcert", "installer": "winget", "package_id": "FiloSottile.mkcert", "category": "extra", "selectionKey": "extras.mkcert" },
+    { "name": "direnv", "command": "direnv", "installer": "winget", "package_id": "direnv.direnv", "category": "extra", "selectionKey": "extras.direnv" },
+    { "name": "Neovim", "command": "nvim", "installer": "winget", "package_id": "Neovim.Neovim", "category": "extra", "selectionKey": "extras.neovim" },
+    { "name": "Starship", "command": "starship", "installer": "winget", "package_id": "Starship.Starship", "category": "extra", "selectionKey": "extras.starship" }
   ]
 }

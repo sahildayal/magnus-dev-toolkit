@@ -48,15 +48,13 @@ function Format-Report {
   Write-Host "  1. Open your CLI:  gemini  /  claude  /  codex"
   Write-Host "  2. MCPs instantly available"
   Write-Host "  3. Ask mcp-router for smart recommendations"
-  Write-Host "  4. Cost tracking automatic"
   Write-Host ""
-  
+
   Write-Host "⚡ QUICK COMMANDS" -ForegroundColor Cyan
   Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   Write-Host "  magnus-token-status      # Check token status"
   Write-Host "  magnus-update            # Update toolkit"
   Write-Host "  magnus-check-versions    # Verify all tools"
-  Write-Host "  magnus-cost-report       # View spending"
   Write-Host "  magnus-reset             # Reset configuration"
   Write-Host ""
   
@@ -75,15 +73,13 @@ function Format-Report {
   Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   Write-Host "  docs/QUICK_START.md       # Quick start guide"
   Write-Host "  docs/MCP_ROUTER_GUIDE.md  # How to use recommendations"
-  Write-Host "  docs/COST_TRACKING.md     # Budget monitoring"
   Write-Host "  docs/ARCHITECTURE.md      # Technical details"
   Write-Host "  docs/TROUBLESHOOTING.md   # Common issues"
   Write-Host ""
-  
+
   Write-Host "💡 PRO TIPS" -ForegroundColor Yellow
   Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   Write-Host "  • mcp-router improves recommendations over time"
-  Write-Host "  • Budget alerts trigger at 75%, 90%, 100%"
   Write-Host "  • All MCPs work offline (except GitHub/Docker APIs)"
   Write-Host ""
   

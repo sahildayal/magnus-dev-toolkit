@@ -3,7 +3,7 @@ export function scoreMcp(taskDescription, mcp) {
   let capabilityMatch = 0;
   let keywordMatch = 0;
 
-  // Calculate capability match (40% weight)
+  // Calculate capability match (50% weight)
   if (mcp.capabilities) {
     let matches = 0;
     for (const cap of mcp.capabilities) {
@@ -11,9 +11,9 @@ export function scoreMcp(taskDescription, mcp) {
         matches++;
       }
     }
-    capabilityMatch = mcp.capabilities.length > 0 ? (matches / mcp.capabilities.length) * 40 : 0;
+    capabilityMatch = mcp.capabilities.length > 0 ? (matches / mcp.capabilities.length) * 50 : 0;
     // Just to ensure some baseline if they just loosely match
-    if (matches > 0 && capabilityMatch < 20) capabilityMatch = 20;
+    if (matches > 0 && capabilityMatch < 25) capabilityMatch = 25;
   }
 
   // Calculate keyword match (30% weight)

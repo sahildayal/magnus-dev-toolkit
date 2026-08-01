@@ -10,7 +10,7 @@ on:
 jobs:
   test-install:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -26,27 +26,40 @@ jobs:
           node --version
           npm --version
 
-      - name: Create dummy user-config (skip interactive, no tools, all MCPs off for speed)
+      - name: Create representative-subset user-config (Python + kubectl + GitHub MCP; Docker Desktop excluded, needs nested virtualization unavailable on hosted runners)
         shell: pwsh
         run: |
           $config = @{
-            tools = @{ java=$false; python=$false; nodejs=$false; csharp=$false; go=$false; rust=$false; cpp=$false }
-            containers = @{ docker=$false; kubernetes=$false }
+            tools = @{ java=$false; python=$true; nodejs=$false; csharp=$false; go=$false; rust=$false; cpp=$false }
+            containers = @{ docker=$false; kubernetes=$true }
             cloud = @{ aws=$false; gcp=$false; azure=$false }
             mcps = @{ github=$true; postgresql=$false; docker=$false; figma=$false; playwright=$false; sentry=$false; chrome=$false }
+            extras = @{ postman=$false; httpie=$false; dbeaver=$false; mongosh=$false; terraform=$false; helm=$false; k9s=$false; minikube=$false; ngrok=$false; mkcert=$false; direnv=$false; neovim=$false; starship=$false }
           }
           if (-not (Test-Path state)) { New-Item -ItemType Directory -Path state | Out-Null }
           $config | ConvertTo-Json | Out-File state/user-config.json -Encoding UTF8
           Write-Host "user-config.json written"
 
-      - name: Phase 1 - Machine Detection
+      - name: Phase 1 - Machine Detection (pre-install baseline)
         shell: pwsh
         run: powershell -ExecutionPolicy Bypass -File scripts/phases/phase-1-detect.ps1
 
-      - name: Phase 2 - Tool Installation (no tools selected, just validates logic)
+      - name: "Phase 2 - Tool Installation (real install of 15 core tools + Python + kubectl)"
         shell: pwsh
         run: |
-          echo "" | powershell -ExecutionPolicy Bypass -File scripts/phases/phase-2-install.ps1
+          echo "" | powershell -ExecutionPolicy Bypass -File scripts/phases/phase-2-install.ps1 -IncludeCoreInCI
+
+      - name: Verify representative tools actually installed
+        shell: pwsh
+        run: |
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+          $checks = @("git", "gh", "rg", "fzf", "bat", "jq", "delta", "lazygit", "curl", "wget", "python", "kubectl")
+          $missing = @()
+          foreach ($cmd in $checks) {
+            if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) { $missing += $cmd }
+          }
+          if ($missing.Count -gt 0) { throw "FAIL: these tools are not on PATH after install: $($missing -join ', ')" }
+          Write-Host "PASS: all $($checks.Count) representative tools installed and on PATH"
 
       - name: Phase 3 - Environment Configuration
         shell: pwsh
@@ -85,16 +98,6 @@ jobs:
           Write-Host "PASS: Codex config.toml contains github MCP"
           Write-Host $content
 
-      - name: Verify budget-tracker.json was initialized
-        shell: pwsh
-        run: |
-          $path = "$env:USERPROFILE\.config\magnus\budget-tracker.json"
-          if (-not (Test-Path $path)) { throw "FAIL: budget-tracker.json not found at $path" }
-          $bt = Get-Content $path | ConvertFrom-Json
-          if ($bt.gemini.spent -ne 0) { throw "FAIL: gemini.spent should be 0" }
-          Write-Host "PASS: budget-tracker.json initialized correctly"
-          $bt | ConvertTo-Json
-
       - name: Phase 4b - MCP Validation
         shell: pwsh
         run: |
@@ -114,6 +117,26 @@ jobs:
       - name: Phase 5 - mcp-router install
         shell: pwsh
         run: powershell -ExecutionPolicy Bypass -File scripts/phases/phase-5-mcp-router.ps1
+
+      - name: Verify mcp-router scoring end-to-end (real stdio MCP call)
+        shell: pwsh
+        run: |
+          $routerPath = "$env:USERPROFILE\.local\lib\mcp-servers\mcp-router\src\router.js"
+          if (-not (Test-Path $routerPath)) { throw "FAIL: router.js not found at $routerPath" }
+          $env:MCP_ROUTER_CONFIG = "$env:USERPROFILE\.config\magnus\mcp-manifest.json"
+          $env:ROUTER_PATH = $routerPath
+          $script = @'
+          import { pathToFileURL } from "url";
+          const routerUrl = pathToFileURL(process.env.ROUTER_PATH).href;
+          const { recommendMcp } = await import(routerUrl);
+          const result = await recommendMcp("search github repos and code");
+          console.log(result);
+          if (!result.includes("GitHub")) { throw new Error("unexpected recommendation: " + result); }
+          '@
+          $script | Out-File "$env:RUNNER_TEMP\router-smoke.mjs" -Encoding UTF8
+          node "$env:RUNNER_TEMP\router-smoke.mjs"
+          if ($LASTEXITCODE -ne 0) { throw "FAIL: mcp-router recommend_mcp smoke test failed" }
+          Write-Host "PASS: mcp-router recommended GitHub MCP for a GitHub-flavored task"
 
       - name: Phase 6 - Onboarding Report
         shell: pwsh
