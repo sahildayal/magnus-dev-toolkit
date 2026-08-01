@@ -155,6 +155,17 @@ Write-Host ""
 # Never assume npm's global root is %APPDATA%\npm - actions/setup-node (and other
 # environments) can relocate it. Ask npm directly instead.
 $npmGlobalRoot = (& npm root -g 2>&1 | Select-Object -Last 1).Trim()
+
+# Resolve npx.cmd to its absolute path rather than using the bare name. On Windows,
+# a bare "npx.cmd" found via PATH search resolves %~dp0-relative paths against the
+# spawning process's *working directory* instead of npx's own install location if
+# that directory happens to contain any node_modules/package.json - which silently
+# breaks it (reproduced: fails when CWD is this repo, since it has package.json
+# files, works fine from elsewhere). Using the absolute path sidesteps this
+# entirely and protects real MCP clients too, not just our own Phase 4b validator.
+$npxCmdPath = (Get-Command npx.cmd -ErrorAction SilentlyContinue).Source
+if (-not $npxCmdPath) { $npxCmdPath = "npx.cmd" }
+
 $mcpServers = @{}
 $failedMcps = @()
 $failedMcps += $unreachable
@@ -201,7 +212,7 @@ foreach ($id in $toInstall) {
         # command is "npx.cmd", not bare "npx" - on Windows, npx is a .cmd shim, and
         # process-spawning APIs that bypass the shell (used by MCP clients and our own
         # Phase 4b validator) can't resolve it without the explicit extension.
-        $mcpServers[$id] = @{ command = "npx.cmd"; args = @("-y", "$($entry.pkg)@latest", "--headless", "--isolated", "--no-usage-statistics") }
+        $mcpServers[$id] = @{ command = $npxCmdPath; args = @("-y", "$($entry.pkg)@latest", "--headless", "--isolated", "--no-usage-statistics") }
         Write-Host "  OK $id ready -> npx $($entry.pkg)@latest" -ForegroundColor Green
         continue
     }
