@@ -1,6 +1,40 @@
 # Changelog
 
-## Unreleased
+## v1.1.1
+
+Fixes for bugs found while auditing production readiness — several had already
+fired on a real machine.
+
+**The advertised one-liner install could never have worked.** `install.ps1` derived
+its own location from `$MyInvocation.MyCommand.Definition`, which under
+`irm ... | iex` returns the script *text* rather than a path. Every phase lookup
+resolved to nonsense, so the primary documented entry point failed immediately. It
+now uses `$PSScriptRoot` and, when running with no file on disk, bootstraps by
+downloading the repo archive (not via `git`, which it is itself responsible for
+installing). A `-ResolveOnly` switch plus a CI step now guard this path — nothing
+tested it before, which is why it stayed broken.
+
+**Phase 3 was destructive.** It wrote a shipped placeholder identity
+(`bikash@example.com`) straight over the user's global git config, so every later
+commit was authored to a fake address GitHub cannot attribute. It now only fills in
+a genuinely missing identity, never overwrites an existing one, and refuses
+placeholder values.
+
+- `JAVA_HOME` / `PYTHON_HOME` were hardcoded to paths that frequently do not exist
+  (`Python311` while the manifest installs 3.13) and were set even when the language
+  was never installed. Both are now derived from where the tool actually resolves,
+  and skipped when absent.
+- Shell aliases were appended on every run, duplicating themselves. They now live in
+  a replaceable marker block, so re-runs are idempotent.
+- VS Code extension installs now report clearly when `code` is not on `PATH`.
+
+**The `mcp<2` constraint is now self-healing.** Phase 4 tries the unconstrained
+resolution first and verifies the server actually starts — really launching it,
+since `--help` exits before the crashing code path is reached. The constraint applies
+only when the latest genuinely fails, so the day upstream publishes a fixed release
+it stops being used automatically, with no edit to this repo.
+
+## v1.1.0
 
 Correctness pass. `v1.0.0` shipped with a validation phase that never actually
 validated anything, which in turn hid several real failures.
