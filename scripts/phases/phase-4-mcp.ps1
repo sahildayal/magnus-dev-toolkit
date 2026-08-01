@@ -5,7 +5,10 @@ param(
 # Auto-detect CI environment
 if ($env:GITHUB_ACTIONS -eq 'true') { $CI = $true }
 
-$ErrorActionPreference = 'Stop'
+# NOTE: Use SilentlyContinue here, NOT Stop.
+# npm writes deprecation warnings to stderr which PowerShell's Stop would
+# treat as terminating errors. We check $LASTEXITCODE manually instead.
+$ErrorActionPreference = 'SilentlyContinue'
 
 $userConfigPath = "$PSScriptRoot\..\..\state\user-config.json"
 if (-not (Test-Path $userConfigPath)) {
@@ -94,9 +97,12 @@ foreach ($id in $toInstall) {
     }
 
     Write-Host "Installing $($entry.pkg)..." -ForegroundColor Cyan
-    $result = & npm install -g $entry.pkg 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "FAILED to install $($entry.pkg): $result"
+    # Redirect stderr to stdout so npm warnings don't cause terminating errors
+    # under any ErrorActionPreference. We check $LASTEXITCODE for real failures.
+    $result = & npm install -g $entry.pkg 2>&1 | Out-String
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        Write-Warning "FAILED to install $($entry.pkg) (exit $exitCode)"
         $failedMcps += $id
         continue
     }
@@ -248,5 +254,5 @@ if ($failedMcps.Count -gt 0) {
     Write-Warning "Check your internet connection and try re-running phase 4."
 } else {
     Write-Host ""
-    Write-Host "OK Phase 4 (MCP Setup) completed - $($mcpConfig.mcpServers.Keys.Count) MCPs configured" -ForegroundColor Green
+    Write-Host "OK Phase 4 (MCP Setup) completed - $($mcpServers.Keys.Count) MCPs configured" -ForegroundColor Green
 }
