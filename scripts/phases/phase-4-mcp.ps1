@@ -48,22 +48,20 @@ $mcpRegistry = @{
     chrome     = @{ installer = "npx";  pkg = "chrome-devtools-mcp";                      needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     filesystem = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-filesystem";  needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     memory     = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-memory";      needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
-    # git: NOT auto-installed. As of 2026-08-01, mcp-server-git on PyPI is broken - it
-    # decorates with @server.list_tools(), but the `mcp` SDK version uv resolves no
-    # longer has that attribute on Server (AttributeError at runtime, inside serve()
-    # so it only surfaces on a real launch - `--help` exits before reaching that code,
-    # which is why the Phase 4 prefetch missed it). Same class of upstream dependency-
-    # version-mismatch bug as mcp-server-fetch below, not fixable here. Kept in the
-    # registry to re-enable once upstream publishes a fix - add "git" to the
-    # always-included list below.
-    git        = @{ installer = "uvx";  pkg = "mcp-server-git";                           needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
-    # fetch: NOT auto-installed. As of 2026-08-01, mcp-server-fetch on PyPI is broken -
-    # its `mcp` SDK dependency resolves to a version that renamed McpError to MCPError,
-    # so `uvx mcp-server-fetch` fails with ImportError before it even starts. This is an
-    # upstream bug (a version-constraint mismatch in mcp-server-fetch's own metadata),
-    # not something fixable here. Kept in the registry so it can be re-enabled once
-    # upstream publishes a fix - just add "fetch" to the always-included list below.
-    fetch      = @{ installer = "uvx";  pkg = "mcp-server-fetch";                         needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    # git/fetch: pinned to the mcp SDK 1.x line via `pin`.
+    #
+    # Both declare `mcp>=1.0.0` / `mcp>=1.1.3` with NO upper bound, so uv resolves the
+    # newest SDK - currently 2.0.0, which shipped breaking API changes:
+    #   mcp-server-fetch -> ImportError: cannot import name 'McpError' (renamed MCPError)
+    #   mcp-server-git   -> AttributeError: 'Server' object has no attribute 'list_tools'
+    # Constraining to mcp<2 resolves 1.29.0 and both work correctly (verified against a
+    # real MCP client: git exposes 12 tools, fetch exposes 1).
+    #
+    # Upstream tracking: modelcontextprotocol/servers issues #4580 (git), #4560 (fetch).
+    # REVISIT once upstream ports these to the 2.x SDK (PRs #4564 git, #4565 fetch) and
+    # publishes - at that point drop the pin so they track the current SDK again.
+    git        = @{ installer = "uvx";  pkg = "mcp-server-git";                           pin = "mcp<2"; needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    fetch      = @{ installer = "uvx";  pkg = "mcp-server-fetch";                         pin = "mcp<2"; needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
 }
 
 # -- Build list of MCPs to install based on user selection --------------------
@@ -74,7 +72,7 @@ if ($userConfig.mcps.playwright) { $toInstall += "playwright" }
 if ($userConfig.mcps.figma)      { $toInstall += "figma" }
 if ($userConfig.mcps.sentry)     { $toInstall += "sentry" }
 if ($userConfig.mcps.chrome)     { $toInstall += "chrome" }
-$toInstall += @("filesystem", "memory")   # always included - see notes above re: git/fetch
+$toInstall += @("filesystem", "memory", "git", "fetch")   # always included
 
 # Check Docker MCP Gateway separately (requires Docker Desktop 4.59+)
 # Source: https://github.com/docker/mcp-gateway
@@ -166,6 +164,11 @@ $npmGlobalRoot = (& npm root -g 2>&1 | Select-Object -Last 1).Trim()
 $npxCmdPath = (Get-Command npx.cmd -ErrorAction SilentlyContinue).Source
 if (-not $npxCmdPath) { $npxCmdPath = "npx.cmd" }
 
+# Same reasoning for uvx: bake in the absolute path so the generated config keeps
+# working even when the MCP client's own PATH doesn't include uv's install dir.
+$uvxPath = (Get-Command uvx -ErrorAction SilentlyContinue).Source
+if (-not $uvxPath) { $uvxPath = "uvx" }
+
 $mcpServers = @{}
 $failedMcps = @()
 $failedMcps += $unreachable
@@ -179,18 +182,25 @@ foreach ($id in $toInstall) {
     }
 
     if ($entry.installer -eq 'uvx') {
-        # uvx installs into an isolated env on first run - prefetch now so Phase 4b's
-        # validation handshake isn't the first (slow) invocation.
+        # Build args once and reuse for both the prefetch and the generated config, so
+        # what we validate is byte-for-byte what MCP clients will actually launch.
+        # A `pin` constrains a transitive dep (see registry notes re: the mcp SDK).
+        $uvxArgs = @()
+        if ($entry.pin) { $uvxArgs += @("--with", $entry.pin) }
+        $uvxArgs += $entry.pkg
+
+        # uvx resolves + caches into an isolated env on first run - prefetch now so
+        # Phase 4b's validation isn't paying that cost on its first invocation.
         Write-Host "Prefetching $($entry.pkg) via uvx..." -ForegroundColor Cyan
-        & uvx $entry.pkg --help 2>&1 | Out-Null
+        & $uvxPath @uvxArgs --help 2>&1 | Out-Null
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "FAILED to prefetch $($entry.pkg) via uvx (exit $LASTEXITCODE)"
             $failedMcps += $id
             continue
         }
 
-        $mcpServers[$id] = @{ command = "uvx"; args = @($entry.pkg) }
-        Write-Host "  OK $id ready -> uvx $($entry.pkg)" -ForegroundColor Green
+        $mcpServers[$id] = @{ command = $uvxPath; args = $uvxArgs }
+        Write-Host "  OK $id ready -> uvx $($uvxArgs -join ' ')" -ForegroundColor Green
         continue
     }
 

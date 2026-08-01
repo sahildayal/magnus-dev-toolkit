@@ -1,8 +1,8 @@
 $ErrorActionPreference = 'SilentlyContinue'
 
-# Refresh PATH from the registry - MCP server commands (uvx, node) are resolved via
-# PATH when spawning the process, and a PowerShell process's in-memory PATH doesn't
-# auto-update when an earlier phase's installer wrote to the registry mid-session.
+# Refresh PATH from the registry - MCP server commands are resolved via PATH when
+# spawning, and a PowerShell process's in-memory PATH doesn't auto-update when an
+# earlier phase's installer wrote to the registry mid-session.
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
 Write-Host ""
@@ -15,6 +15,32 @@ if (-not (Test-Path $configPath)) {
     exit 0
 }
 
+$repoRoot = "$PSScriptRoot\..\.."
+$stateDir = "$repoRoot\state"
+if (-not (Test-Path $stateDir)) { New-Item -ItemType Directory -Path $stateDir -Force | Out-Null }
+
+# -- Set up the probe environment ---------------------------------------------
+# Validation speaks the real Model Context Protocol via the official client SDK
+# rather than a hand-rolled handshake. The probe needs the SDK resolvable, and ESM
+# resolves node_modules by walking up from the *script's* own directory - so the
+# probe is staged in its own folder with the SDK installed alongside it.
+$probeDir = "$stateDir\mcp-probe"
+if (-not (Test-Path $probeDir)) { New-Item -ItemType Directory -Path $probeDir -Force | Out-Null }
+Copy-Item "$repoRoot\scripts\mcp-probe.mjs" -Destination "$probeDir\mcp-probe.mjs" -Force
+
+if (-not (Test-Path "$probeDir\node_modules\@modelcontextprotocol\sdk")) {
+    Write-Host "Installing MCP client SDK for validation..." -ForegroundColor Cyan
+    Push-Location $probeDir
+    & npm install "@modelcontextprotocol/sdk" --loglevel=error --no-fund --no-audit 2>&1 | Out-Null
+    $sdkExit = $LASTEXITCODE
+    Pop-Location
+    if ($sdkExit -ne 0 -or -not (Test-Path "$probeDir\node_modules\@modelcontextprotocol\sdk")) {
+        Write-Warning "Could not install the MCP client SDK - skipping validation."
+        Write-Warning "MCP servers were still configured; re-run this phase once npm can reach the registry."
+        exit 0
+    }
+}
+
 $mcpConfig = Get-Content $configPath -Raw | ConvertFrom-Json
 $passed  = @()
 $failed  = @()
@@ -23,77 +49,50 @@ $skipped = @()
 foreach ($name in ($mcpConfig.mcpServers | Get-Member -MemberType NoteProperty).Name) {
     $server = $mcpConfig.mcpServers.$name
 
-    if (-not $server.command -or -not $server.args) {
-        $skipped += $name
+    if (-not $server.command) {
+        $skipped += "$name (no command in config)"
         continue
     }
 
-    # Check the entry point exists - only meaningful when command is "node" and args[0]
-    # is a literal file path. For uvx/npx/docker, args[0] is a package name or flag
-    # (e.g. "-y", "mcp-server-git") resolved via PATH/registry at spawn time, not a path.
-    if ($server.command -eq "node") {
-        $targetFile = $server.args[0]
-        if (-not (Test-Path $targetFile)) {
-            Write-Host "  FAIL [$name] -> entry point not found: $targetFile" -ForegroundColor Red
-            $failed += $name
-            continue
+    # Hand the probe the exact command/args/env the MCP clients will use, so what
+    # gets validated is byte-for-byte what actually launches in real use.
+    $spec = @{
+        command = $server.command
+        args    = @($server.args)
+    }
+    if ($server.env) {
+        $envMap = @{}
+        foreach ($k in ($server.env | Get-Member -MemberType NoteProperty).Name) {
+            $envMap[$k] = $server.env.$k
         }
+        $spec.env = $envMap
+    }
+    # Write the spec to a file rather than passing it inline - Windows PowerShell
+    # mangles embedded double quotes when handing strings to native commands.
+    $specPath = "$probeDir\spec.json"
+    $spec | ConvertTo-Json -Depth 10 | Out-File $specPath -Encoding UTF8
+
+    $raw = & node "$probeDir\mcp-probe.mjs" $specPath 2>$null
+    $line = ($raw | Where-Object { $_ -like "__MAGNUS_PROBE__*" } | Select-Object -First 1)
+
+    if (-not $line) {
+        $failed += $name
+        Write-Host "  FAIL [$name] -> probe produced no result" -ForegroundColor Red
+        continue
     }
 
-    # Spawn the MCP process and send an MCP initialize handshake via stdio
-    # The MCP protocol initialize message:
-    $initMsg = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"magnus-validator","version":"1.0.0"}}}' + "`n"
+    $result = $line.Substring("__MAGNUS_PROBE__".Length) | ConvertFrom-Json
 
-    try {
-        $psi = New-Object System.Diagnostics.ProcessStartInfo
-        $psi.FileName = $server.command
-        $psi.Arguments = ($server.args | ForEach-Object { "`"$_`"" }) -join " "
-        $psi.UseShellExecute = $false
-        $psi.RedirectStandardInput = $true
-        $psi.RedirectStandardOutput = $true
-        $psi.RedirectStandardError = $true
-        $psi.CreateNoWindow = $true
-
-        # Inject env vars if present
-        if ($server.env) {
-            foreach ($envKey in ($server.env | Get-Member -MemberType NoteProperty).Name) {
-                $psi.EnvironmentVariables[$envKey] = $server.env.$envKey
-            }
-        }
-
-        $proc = [System.Diagnostics.Process]::Start($psi)
-        $proc.StandardInput.WriteLine($initMsg)
-        $proc.StandardInput.Close()
-
-        # Read response with a 30s timeout - first-run MCP spawns (e.g. Playwright
-        # downloading/launching Chromium) can take 10-15s, so 5s was giving false timeouts.
-        $outputTask = $proc.StandardOutput.ReadToEndAsync()
-        $timedOut   = -not $proc.WaitForExit(30000)
-
-        if ($timedOut) {
-            $proc.Kill()
-            $skipped += "$name (timeout - process spawned but did not respond in 30s)"
-            Write-Host "  WARN [$name] -> spawned but no response in 30s (may need token/args)" -ForegroundColor Yellow
-        } else {
-            $output = $outputTask.Result
-            if ($output -match '"result"' -or $output -match '"serverInfo"' -or $output -match '"protocolVersion"') {
-                $passed += $name
-                Write-Host "  PASS [$name] -> MCP initialized successfully" -ForegroundColor Green
-            } else {
-                # Some MCPs output nothing on init but exit 0 — treat exit 0 as pass
-                if ($proc.ExitCode -eq 0) {
-                    $passed += $name
-                    Write-Host "  PASS [$name] -> process exited cleanly" -ForegroundColor Green
-                } else {
-                    $stderr = $proc.StandardError.ReadToEnd()
-                    $failed += $name
-                    Write-Host "  FAIL [$name] -> exit code $($proc.ExitCode): $stderr" -ForegroundColor Red
-                }
-            }
-        }
-    } catch {
+    if ($result.ok) {
+        $passed += $name
+        $toolCount = @($result.tools).Count
+        Write-Host "  PASS [$name] -> handshake OK, $toolCount tool(s)" -ForegroundColor Green
+    } elseif ($result.timedOut) {
+        $skipped += "$name (timeout)"
+        Write-Host "  WARN [$name] -> no response before timeout (may need a token or extra args)" -ForegroundColor Yellow
+    } else {
         $failed += $name
-        Write-Host "  FAIL [$name] -> exception: $_" -ForegroundColor Red
+        Write-Host "  FAIL [$name] -> $($result.error)" -ForegroundColor Red
     }
 }
 
@@ -110,8 +109,6 @@ if ($failed.Count -gt 0) {
     Write-Host "       Edit ~/.config/magnus/mcp-config.json and re-run this phase." -ForegroundColor Gray
 }
 
-# Save results to state
-$stateDir = "$PSScriptRoot\..\..\state"
 @{ passed=$passed; failed=$failed; skipped=$skipped; timestamp=(Get-Date -Format "o") } `
     | ConvertTo-Json | Out-File "$stateDir\mcp-validation.json" -Encoding UTF8
 

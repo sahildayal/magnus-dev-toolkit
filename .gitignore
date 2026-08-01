@@ -1,0 +1,8 @@
+# Phase 4b stages the MCP client SDK here to validate servers - generated, never commit
+state/mcp-probe/
+
+# Per-run validation output (CI still uploads it as a build artifact)
+state/mcp-validation.json
+
+node_modules/
+npm-debug.log*
