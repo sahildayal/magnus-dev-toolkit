@@ -68,7 +68,11 @@ $toInstall | ForEach-Object {
 
     # Skip tools already on PATH instead of re-running the installer -
     # avoids needless repair-installs, UAC prompts, and false "FAILED" results on re-runs.
-    if (Get-Command $tool.command -ErrorAction SilentlyContinue) {
+    # Only CommandType 'Application' counts: Windows PowerShell 5.1 ships built-in
+    # curl/wget aliases (-> Invoke-WebRequest) that would otherwise cause a false
+    # "already installed" and skip the real executable.
+    $existing = Get-Command $tool.command -ErrorAction SilentlyContinue | Where-Object { $_.CommandType -eq 'Application' }
+    if ($existing) {
         Write-Host "Already installed: $($tool.name)" -ForegroundColor DarkGray
         $alreadyPresent += $tool.name
         return
