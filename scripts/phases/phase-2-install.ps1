@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$CI,             # Skip core tool installs to keep CI fast; auto-set via $env:GITHUB_ACTIONS
     [switch]$IncludeCoreInCI # Override: install core tools even under CI (used by the E2E validation workflow)
 )
