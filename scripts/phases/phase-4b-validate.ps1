@@ -1,5 +1,10 @@
 $ErrorActionPreference = 'SilentlyContinue'
 
+# Refresh PATH from the registry - MCP server commands (uvx, node) are resolved via
+# PATH when spawning the process, and a PowerShell process's in-memory PATH doesn't
+# auto-update when an earlier phase's installer wrote to the registry mid-session.
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
 Write-Host ""
 Write-Host "=== Phase 4b: MCP Validation ===" -ForegroundColor Cyan
 Write-Host ""

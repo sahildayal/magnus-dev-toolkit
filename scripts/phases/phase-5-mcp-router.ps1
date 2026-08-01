@@ -1,5 +1,10 @@
 ﻿$ErrorActionPreference = 'Stop'
 
+# Refresh PATH from the registry - a PowerShell process's in-memory PATH doesn't
+# auto-update when an earlier phase's installer (e.g. Node.js in Phase 2) writes to
+# the registry mid-session, so a freshly-installed npm would otherwise be invisible here.
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
 Write-Host "Installing mcp-router skill..." -ForegroundColor Cyan
 
 $mcpRouterPath = "$env:USERPROFILE\.local\lib\mcp-servers\mcp-router"

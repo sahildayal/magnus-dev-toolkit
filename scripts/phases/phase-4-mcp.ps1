@@ -10,6 +10,11 @@ if ($env:GITHUB_ACTIONS -eq 'true') { $CI = $true }
 # treat as terminating errors. We check $LASTEXITCODE manually instead.
 $ErrorActionPreference = 'SilentlyContinue'
 
+# Refresh PATH from the registry - a PowerShell process's in-memory PATH doesn't
+# auto-update when an earlier phase's installer (e.g. uv in Phase 2) writes to the
+# registry mid-session, so freshly-installed commands (uvx) would otherwise be invisible here.
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
 $userConfigPath = "$PSScriptRoot\..\..\state\user-config.json"
 if (-not (Test-Path $userConfigPath)) {
     $userConfig = @{
