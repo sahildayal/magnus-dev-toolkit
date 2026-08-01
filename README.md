@@ -1,20 +1,36 @@
-# Magnus Dev Toolkit 🚀
+# Magnus Dev Toolkit
 
 A one-command developer bootstrap system for AI-native engineers. Automates tool installation, environment configuration, and MCP server setup across Gemini CLI, Cline, and Codex.
 
 ---
 
-## 🌟 Key Features
+## Quick Start
 
-✅ **Zero Manual Setup** — Interactive prompt once, then fully automated.  
-✅ **44 Dev Tools** — 15 always-on core CLI tools (Git, GitHub CLI, VS Code, ripgrep, fzf, bat, jq, lazygit, etc.), 13 opt-in power tools (Postman, Terraform, Helm, k9s, DBeaver, etc.), and 16 language/container/cloud tools selected in the wizard — installed via `winget` and `npm`.  
-✅ **11 Pre-Configured MCPs** — GitHub, PostgreSQL, Playwright, Figma, Sentry, Puppeteer, Filesystem, Memory + mcp-router.  
-✅ **Intelligent Routing (`mcp-router`)** — Recommends the best MCP per task using capability, keyword, and cost scoring.  
-✅ **Multi-CLI Compatible** — Writes correct config to each CLI in its own native format.
+```powershell
+powershell -c "irm https://github.com/sahildayal/magnus-dev-toolkit/raw/main/scripts/install.ps1 | iex"
+```
+
+Silent install (uses an existing `state/user-config.json` instead of the interactive wizard):
+
+```powershell
+.\scripts\install.ps1 -SkipInteractive
+```
+
+The installer walks through 6 phases automatically: detect what you already have, install what's missing, configure your environment, set up MCP servers, validate them, and print a summary. See [Architecture](#architecture) below for details on each phase.
 
 ---
 
-## 🏗️ Architecture
+## Key Features
+
+- **Zero manual setup** — answer a few prompts once, then everything runs automatically.
+- **44 dev tools** — 15 always-on core CLI tools (Git, GitHub CLI, VS Code, ripgrep, fzf, bat, jq, lazygit, etc.), 13 opt-in power tools (Postman, Terraform, Helm, k9s, DBeaver, etc.), and 16 language/container/cloud tools selected in the wizard — installed via `winget` and `npm`.
+- **9 pre-configured MCPs** — GitHub, PostgreSQL, Playwright, Figma, Sentry, Puppeteer, Filesystem, Memory, and Docker — plus `mcp-router` itself, auto-registered as a 10th server.
+- **Intelligent routing (`mcp-router`)** — recommends the best MCP for a given task using capability, keyword, and cost scoring.
+- **Multi-CLI compatible** — writes each CLI's config in its own native format and location.
+
+---
+
+## Architecture
 
 ```
 magnus-setup
@@ -30,20 +46,7 @@ magnus-setup
 
 ---
 
-## 🚀 Quick Start
-
-```powershell
-powershell -c "irm https://github.com/sahildayal/magnus-dev-toolkit/raw/main/scripts/install.ps1 | iex"
-```
-
-Silent install (uses existing `state/user-config.json`):
-```powershell
-.\scripts\install.ps1 -SkipInteractive
-```
-
----
-
-## 🔌 MCP Configuration
+## MCP Configuration
 
 Each CLI gets its config written in the correct format to the correct path:
 
@@ -73,7 +76,7 @@ Each CLI gets its config written in the correct format to the correct path:
 
 ---
 
-## 🧠 mcp-router Scoring
+## mcp-router Scoring
 
 ```
 Score = (Capability Match × 50%) + (Keyword Match × 30%) + (Cost Efficiency × 20%)
@@ -81,13 +84,14 @@ Score = (Capability Match × 50%) + (Keyword Match × 30%) + (Cost Efficiency ×
 
 ---
 
-## 🧪 Testing
+## Testing
 
 The CI runs a full end-to-end test on a **fresh `windows-latest` GitHub Actions runner** on every push:
 
 [![E2E Install Test](https://github.com/sahildayal/magnus-dev-toolkit/actions/workflows/test-install.yml/badge.svg)](https://github.com/sahildayal/magnus-dev-toolkit/actions/workflows/test-install.yml)
 
 The test does a **real install** of a representative subset on a fresh Windows runner (all 15 core tools, Python, kubectl, GitHub MCP — Docker Desktop is excluded since it needs virtualization hosted runners don't expose) and validates:
+
 - Each phase script runs without errors
 - The installed core tools are actually on `PATH` afterward
 - `~/.gemini/settings.json` contains `mcpServers.github`
@@ -98,7 +102,7 @@ The test does a **real install** of a representative subset on a fresh Windows r
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Doc | Description |
 |---|---|
@@ -111,7 +115,7 @@ The test does a **real install** of a representative subset on a fresh Windows r
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
