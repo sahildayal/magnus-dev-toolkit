@@ -1,0 +1,11 @@
+{
+  "extensions": [
+    "ms-python.python",
+    "ms-vscode.cpptools",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "vscjava.vscode-java-pack",
+    "golang.go",
+    "rust-lang.rust-analyzer"
+  ]
+}

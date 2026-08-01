@@ -1,0 +1,54 @@
+{
+  "mcpServers": [
+    {
+      "id": "github",
+      "name": "GitHub MCP",
+      "description": "Query repos, search code, manage PRs",
+      "capabilities": ["code_search", "repo_analysis", "issue_tracking"],
+      "scoringRules": {
+        "keywords": ["github", "repo", "code", "pull", "issue", "pr"],
+        "weight": 1.0
+      },
+      "costProfile": {
+        "estimatedTokensPer100Calls": 5000,
+        "preferredModel": "codex",
+        "reasoning": "Codex is cheaper for structured API calls"
+      }
+    },
+    {
+      "id": "postgresql",
+      "name": "PostgreSQL MCP",
+      "description": "Database queries and schema introspection",
+      "capabilities": ["sql", "database", "query", "schema", "tables"],
+      "scoringRules": {
+        "keywords": ["sql", "database", "postgres", "table", "query"],
+        "weight": 1.0
+      },
+      "costProfile": {
+        "estimatedTokensPer100Calls": 3000,
+        "preferredModel": "gemini",
+        "reasoning": "Gemini offers fast reasoning for SQL"
+      }
+    },
+    {
+      "id": "playwright",
+      "name": "Playwright MCP",
+      "description": "Web automation and UI testing",
+      "capabilities": ["testing", "ui", "browser", "automation", "e2e"],
+      "scoringRules": {
+        "keywords": ["test", "browser", "ui", "playwright", "click", "navigate"],
+        "weight": 1.0
+      },
+      "costProfile": {
+        "estimatedTokensPer100Calls": 8000,
+        "preferredModel": "claude",
+        "reasoning": "Claude performs well with complex UI automation reasoning"
+      }
+    }
+  ],
+  "budgetTracking": {
+    "gemini": { "monthlyLimit": 20, "spent": 3.45 },
+    "claude": { "monthlyLimit": 20, "spent": 0 },
+    "codex": { "monthlyLimit": 20, "spent": 0 }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mcp-router",
+  "version": "1.0.0",
+  "description": "Intelligent Recommendation Engine for MCP",
+  "main": "src/index.js",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  }
+}

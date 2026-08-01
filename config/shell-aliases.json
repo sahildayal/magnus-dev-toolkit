@@ -1,0 +1,9 @@
+{
+  "powerShell": [
+    "Set-Alias ll Get-ChildItem",
+    "function gstat { git status }",
+    "function glog { git log --oneline --graph --all }",
+    "function gl { git pull }",
+    "function gp { git push }"
+  ]
+}
