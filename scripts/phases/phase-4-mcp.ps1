@@ -1,3 +1,10 @@
+param(
+    [switch]$CI   # Skip all interactive prompts (auto-set in GitHub Actions via $env:GITHUB_ACTIONS)
+)
+
+# Auto-detect CI environment
+if ($env:GITHUB_ACTIONS -eq 'true') { $CI = $true }
+
 $ErrorActionPreference = 'Stop'
 
 $userConfigPath = "$PSScriptRoot\..\..\state\user-config.json"
@@ -59,15 +66,19 @@ Write-Host ""
 
 # -- Collect tokens for MCPs that need them -----------------------------------
 $tokens = @{}
-foreach ($id in $toInstall) {
-    $entry = $mcpRegistry[$id]
-    if ($entry -and $entry.needsToken) {
-        Write-Host "Token required for $id" -ForegroundColor Yellow
-        Write-Host "  $($entry.tokenPrompt)" -ForegroundColor Gray
-        $t = Read-Host "  Enter token (or press ENTER to skip)"
-        $tokens[$id] = $t.Trim()
-        Write-Host ""
+if (-not $CI) {
+    foreach ($id in $toInstall) {
+        $entry = $mcpRegistry[$id]
+        if ($entry -and $entry.needsToken) {
+            Write-Host "Token required for $id" -ForegroundColor Yellow
+            Write-Host "  $($entry.tokenPrompt)" -ForegroundColor Gray
+            $t = Read-Host "  Enter token (or press ENTER to skip)"
+            $tokens[$id] = $t.Trim()
+            Write-Host ""
+        }
     }
+} else {
+    Write-Host "  CI mode: skipping token prompts" -ForegroundColor DarkGray
 }
 
 # -- Install each MCP globally via npm ----------------------------------------
@@ -114,7 +125,7 @@ foreach ($id in $toInstall) {
     }
 
     # Special case: postgres needs a connection string arg
-    if ($id -eq "postgres") {
+    if ($id -eq "postgres" -and -not $CI) {
         Write-Host "  PostgreSQL connection string (e.g. postgresql://localhost/mydb):" -ForegroundColor Gray
         $pgConn = Read-Host "  Enter connection string (or ENTER to skip)"
         if ($pgConn) { $serverEntry.args = @($absPath, $pgConn.Trim()) }

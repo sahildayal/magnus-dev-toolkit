@@ -54,14 +54,8 @@ jobs:
 
       - name: Phase 4 - MCP Setup (GitHub MCP only, no token)
         shell: pwsh
-        run: |
-          # Pre-supply empty responses to all Read-Host prompts
-          $inputScript = {
-            # GitHub token prompt -> skip
-            ""
-            # No postgres connection string prompt (postgres not selected)
-          }
-          powershell -ExecutionPolicy Bypass -File scripts/phases/phase-4-mcp.ps1
+        run: powershell -ExecutionPolicy Bypass -File scripts/phases/phase-4-mcp.ps1
+        # CI mode auto-detected via $env:GITHUB_ACTIONS - all Read-Host prompts skipped
 
       - name: Verify Gemini CLI config was written
         shell: pwsh
