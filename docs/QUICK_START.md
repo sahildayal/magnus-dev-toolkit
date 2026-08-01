@@ -8,7 +8,7 @@ powershell -c "irm https://github.com/sahildayal/magnus-dev-toolkit/raw/main/scr
 
 ## First Run
 After installation, open your CLI (e.g., `gemini`, `claude`, or `codex`).
-Every MCP you selected during setup (up to 11, plus `mcp-router`) will be ready to use.
+Every MCP you selected during setup (up to 10, plus `mcp-router`) will be ready to use.
 
 ## Checking Recommendation
 You can ask the MCP router:

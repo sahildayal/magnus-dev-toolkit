@@ -37,6 +37,12 @@ $mcpRegistry = @{
     filesystem = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-filesystem";  needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     memory     = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-memory";      needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     git        = @{ installer = "uvx";  pkg = "mcp-server-git";                           needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    # fetch: NOT auto-installed. As of 2026-08-01, mcp-server-fetch on PyPI is broken -
+    # its `mcp` SDK dependency resolves to a version that renamed McpError to MCPError,
+    # so `uvx mcp-server-fetch` fails with ImportError before it even starts. This is an
+    # upstream bug (a version-constraint mismatch in mcp-server-fetch's own metadata),
+    # not something fixable here. Kept in the registry so it can be re-enabled once
+    # upstream publishes a fix - just add "fetch" to the always-included list below.
     fetch      = @{ installer = "uvx";  pkg = "mcp-server-fetch";                         needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
 }
 
@@ -48,7 +54,7 @@ if ($userConfig.mcps.playwright) { $toInstall += "playwright" }
 if ($userConfig.mcps.figma)      { $toInstall += "figma" }
 if ($userConfig.mcps.sentry)     { $toInstall += "sentry" }
 if ($userConfig.mcps.chrome)     { $toInstall += "puppeteer" }
-$toInstall += @("filesystem", "memory", "git", "fetch")   # always included
+$toInstall += @("filesystem", "memory", "git")   # always included - see note above re: fetch
 
 # Check Docker MCP Gateway separately (requires Docker Desktop 4.59+)
 # Source: https://github.com/docker/mcp-gateway
