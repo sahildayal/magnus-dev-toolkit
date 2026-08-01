@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'SilentlyContinue'
+﻿$ErrorActionPreference = 'SilentlyContinue'
 
 $gitConfigPath = "$PSScriptRoot\..\..\config\git-config.json"
 if (Test-Path $gitConfigPath) {
@@ -31,4 +31,4 @@ if (Test-Path $extPath) {
     }
 }
 
-Write-Host "✓ Phase 3 (Environment Configuration) completed" -ForegroundColor Green
+Write-Host "OK Phase 3 (Environment Configuration) completed" -ForegroundColor Green

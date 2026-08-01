@@ -18,31 +18,20 @@ if ($userConfig.mcps.chrome) { $mcpsToInstall += "puppeteer" }
 
 $mcpsToInstall += @("filesystem", "memory", "fetch", "git")
 
-Write-Host "Installing MCPs: $($mcpsToInstall -join ', ')" -ForegroundColor Cyan
-
-$mcpsToInstall | ForEach-Object {
-  if ($_ -eq 'docker') {
-    # docker mcp might be @modelcontextprotocol/docker or similar, using known ones
-    & npm install -g "@modelcontextprotocol/server-docker" --loglevel=error -f
-  } else {
-    & npm install -g "@modelcontextprotocol/server-$_" --loglevel=error -f
-  }
-}
+Write-Host "Configuring MCPs for NPX execution: $($mcpsToInstall -join ', ')" -ForegroundColor Cyan
 
 $mcpConfig = @{ mcpServers = @{} }
 $mcpsToInstall | ForEach-Object {
-  $pkgName = $_
-  if ($_ -eq 'docker') { $pkgName = 'server-docker' }
-  else { $pkgName = "server-$_" }
+  $pkgName = "server-$_"
   $mcpConfig.mcpServers[$_] = @{
-    command = "node"
-    args = @("$env:USERPROFILE\AppData\Roaming\npm\node_modules\@modelcontextprotocol\$pkgName\dist\index.js")
+    command = "npx"
+    args = @("-y", "@modelcontextprotocol/$pkgName")
   }
 }
 
 $configPath = "$env:USERPROFILE\.config\magnus"
 if (-not (Test-Path $configPath)) { New-Item -ItemType Directory -Path $configPath -Force | Out-Null }
-$mcpConfig | ConvertTo-Json -Depth 10 | Out-File "$configPath\mcp-config.json"
+$mcpConfig | ConvertTo-Json -Depth 10 | Out-File "$configPath\mcp-config.json" -Encoding UTF8
 
 $cliPaths = @(
   "$env:USERPROFILE\.config\cline",
@@ -53,8 +42,7 @@ foreach ($p in $cliPaths) {
   if (-not (Test-Path $p)) { New-Item -ItemType Directory -Path $p -Force | Out-Null }
   $target = "$p\mcp-config.json"
   if (Test-Path $target) { Remove-Item $target -Force }
-  # Use hardlink or copy instead of mklink to avoid requiring admin rights if developer mode is off
   Copy-Item "$configPath\mcp-config.json" -Destination $target -Force
 }
 
-Write-Host "✓ Phase 4 (MCP Setup) completed" -ForegroundColor Green
+Write-Host "OK Phase 4 (MCP Setup) completed" -ForegroundColor Green

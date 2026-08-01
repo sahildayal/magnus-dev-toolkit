@@ -36,7 +36,14 @@
       "description": "Web automation and UI testing",
       "capabilities": ["testing", "ui", "browser", "automation", "e2e"],
       "scoringRules": {
-        "keywords": ["test", "browser", "ui", "playwright", "click", "navigate"],
+        "keywords": [
+          "test",
+          "browser",
+          "ui",
+          "playwright",
+          "click",
+          "navigate"
+        ],
         "weight": 1.0
       },
       "costProfile": {

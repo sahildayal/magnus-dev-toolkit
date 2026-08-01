@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 $userConfigPath = "$PSScriptRoot\..\..\state\user-config.json"
 $manifestPath = "$PSScriptRoot\..\..\config\tools-manifest.json"
@@ -39,7 +39,7 @@ Write-Host "The following will be installed:" -ForegroundColor Cyan
 if ($toInstall.Count -eq 0) {
     Write-Host "  No tools selected."
 } else {
-    $toInstall | ForEach-Object { Write-Host "  ✓ $($_.name)" }
+    $toInstall | ForEach-Object { Write-Host "  OK $($_.name)" }
 }
 
 Write-Host ""
@@ -55,4 +55,4 @@ $toInstall | ForEach-Object {
   }
 }
 
-Write-Host "✓ Phase 2 (Installation) completed" -ForegroundColor Green
+Write-Host "OK Phase 2 (Installation) completed" -ForegroundColor Green

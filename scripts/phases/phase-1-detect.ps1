@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 $state = @{
   detected = @{}
@@ -22,4 +22,4 @@ $stateDir = "$PSScriptRoot\..\..\state"
 if (-not (Test-Path $stateDir)) { New-Item -ItemType Directory -Path $stateDir -Force | Out-Null }
 $state | ConvertTo-Json | Out-File "$stateDir\installation-state.json"
 
-Write-Host "✓ Phase 1 (Detection) completed" -ForegroundColor Green
+Write-Host "OK Phase 1 (Detection) completed" -ForegroundColor Green

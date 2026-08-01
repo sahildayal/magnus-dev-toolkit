@@ -1,16 +1,76 @@
 {
   "tools": [
-    { "name": "Python 3.11+", "command": "python", "installer": "winget", "package_id": "Python.Python.3.13" },
-    { "name": "Node.js 20+", "command": "node", "installer": "winget", "package_id": "OpenJS.NodeJS" },
-    { "name": "Java 17+", "command": "java", "installer": "winget", "package_id": "Oracle.JDK.17" },
-    { "name": "Go", "command": "go", "installer": "winget", "package_id": "GoLang.Go" },
-    { "name": "Rust", "command": "rustc", "installer": "winget", "package_id": "Rustlang.Rustup" },
-    { "name": "C/C++", "command": "gcc", "installer": "winget", "package_id": "Microsoft.VisualStudio.2022.BuildTools" },
-    { "name": "C#/.NET", "command": "dotnet", "installer": "winget", "package_id": "Microsoft.DotNet.SDK.8" },
-    { "name": "Docker Desktop", "command": "docker", "installer": "winget", "package_id": "Docker.DockerDesktop" },
-    { "name": "Kubernetes CLI", "command": "kubectl", "installer": "winget", "package_id": "Kubernetes.kubectl" },
-    { "name": "AWS CLI", "command": "aws", "installer": "winget", "package_id": "Amazon.AWSCLI" },
-    { "name": "Google Cloud SDK", "command": "gcloud", "installer": "winget", "package_id": "Google.CloudSDK" },
-    { "name": "Azure CLI", "command": "az", "installer": "winget", "package_id": "Microsoft.AzureCLI" }
+    {
+      "name": "Python 3.11+",
+      "command": "python",
+      "installer": "winget",
+      "package_id": "Python.Python.3.13"
+    },
+    {
+      "name": "Node.js 20+",
+      "command": "node",
+      "installer": "winget",
+      "package_id": "OpenJS.NodeJS"
+    },
+    {
+      "name": "Java 17+",
+      "command": "java",
+      "installer": "winget",
+      "package_id": "Oracle.JDK.17"
+    },
+    {
+      "name": "Go",
+      "command": "go",
+      "installer": "winget",
+      "package_id": "GoLang.Go"
+    },
+    {
+      "name": "Rust",
+      "command": "rustc",
+      "installer": "winget",
+      "package_id": "Rustlang.Rustup"
+    },
+    {
+      "name": "C/C++",
+      "command": "gcc",
+      "installer": "winget",
+      "package_id": "Microsoft.VisualStudio.2022.BuildTools"
+    },
+    {
+      "name": "C#/.NET",
+      "command": "dotnet",
+      "installer": "winget",
+      "package_id": "Microsoft.DotNet.SDK.8"
+    },
+    {
+      "name": "Docker Desktop",
+      "command": "docker",
+      "installer": "winget",
+      "package_id": "Docker.DockerDesktop"
+    },
+    {
+      "name": "Kubernetes CLI",
+      "command": "kubectl",
+      "installer": "winget",
+      "package_id": "Kubernetes.kubectl"
+    },
+    {
+      "name": "AWS CLI",
+      "command": "aws",
+      "installer": "winget",
+      "package_id": "Amazon.AWSCLI"
+    },
+    {
+      "name": "Google Cloud SDK",
+      "command": "gcloud",
+      "installer": "winget",
+      "package_id": "Google.CloudSDK"
+    },
+    {
+      "name": "Azure CLI",
+      "command": "az",
+      "installer": "winget",
+      "package_id": "Microsoft.AzureCLI"
+    }
   ]
 }

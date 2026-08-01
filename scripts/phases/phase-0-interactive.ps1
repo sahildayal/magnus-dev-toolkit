@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
 Write-Host "║     Magnus Dev Toolkit - Interactive Setup Wizard              ║" -ForegroundColor Cyan
@@ -91,4 +91,4 @@ if (-not (Test-Path $stateDir)) { New-Item -ItemType Directory -Path $stateDir -
 $userConfig | ConvertTo-Json | Out-File "$stateDir\user-config.json"
 
 Write-Host ""
-Write-Host "✓ Configuration saved" -ForegroundColor Green
+Write-Host "OK Configuration saved" -ForegroundColor Green

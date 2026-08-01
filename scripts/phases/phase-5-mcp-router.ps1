@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 Write-Host "Installing mcp-router skill..." -ForegroundColor Cyan
 
@@ -41,4 +41,4 @@ if (-not (Test-Path $configPath)) { New-Item -ItemType Directory -Path $configPa
 Copy-Item "$PSScriptRoot\..\..\config\mcp-manifest.json" -Destination "$configPath\mcp-manifest.json" -Force
 Copy-Item "$PSScriptRoot\..\..\config\budget-tracker.json" -Destination "$configPath\budget-tracker.json" -Force
 
-Write-Host "✓ Phase 5 (mcp-router) installed" -ForegroundColor Green
+Write-Host "OK Phase 5 (mcp-router) installed" -ForegroundColor Green

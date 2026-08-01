@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'SilentlyContinue'
+﻿$ErrorActionPreference = 'SilentlyContinue'
 
 function Format-Report {
   $statePath = "$PSScriptRoot\..\..\state\installation-state.json"
@@ -28,19 +28,19 @@ function Format-Report {
   
   Write-Host "📦 INSTALLATION SUMMARY" -ForegroundColor Yellow
   Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  Write-Host "  ✓ Tools Installed: $toolCount"
-  Write-Host "  ✓ Duration: $duration minutes"
-  Write-Host "  ✓ Status: SUCCESS"
+  Write-Host "  OK Tools Installed: $toolCount"
+  Write-Host "  OK Duration: $duration minutes"
+  Write-Host "  OK Status: SUCCESS"
   Write-Host ""
   
   Write-Host "🔧 ENVIRONMENT CONFIGURED" -ForegroundColor Green
   Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  Write-Host "  ✓ Git configured"
-  Write-Host "  ✓ Environment variables set"
-  Write-Host "  ✓ PowerShell profile updated with aliases"
-  Write-Host "  ✓ VS Code extensions installed"
-  Write-Host "  ✓ MCP servers registered"
-  Write-Host "  ✓ mcp-router recommendation engine active"
+  Write-Host "  OK Git configured"
+  Write-Host "  OK Environment variables set"
+  Write-Host "  OK PowerShell profile updated with aliases"
+  Write-Host "  OK VS Code extensions installed"
+  Write-Host "  OK MCP servers registered"
+  Write-Host "  OK mcp-router recommendation engine active"
   Write-Host ""
   
   Write-Host "✅ READY TO USE" -ForegroundColor Green
