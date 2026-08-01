@@ -47,6 +47,8 @@ $userConfig = @{
     direnv = $false
     neovim = $false
     starship = $false
+    mysql = $false
+    ollama = $false
   }
 }
 
@@ -102,7 +104,7 @@ $selectedMcps | ForEach-Object {
 
 Write-Host ""
 Write-Host "🧰 Any optional power tools you want? (skip anything you don't need)" -ForegroundColor Yellow
-$extraOptions = @("Postman", "HTTPie", "DBeaver", "MongoDB Shell", "Terraform", "Helm", "k9s", "Minikube", "ngrok", "mkcert", "direnv", "Neovim", "Starship")
+$extraOptions = @("Postman", "HTTPie", "DBeaver", "MongoDB Shell", "MySQL", "Terraform", "Helm", "k9s", "Minikube", "ngrok", "mkcert", "direnv", "Neovim", "Starship", "Ollama")
 $selectedExtras = Show-Menu $extraOptions
 
 $selectedExtras | ForEach-Object {
@@ -110,6 +112,7 @@ $selectedExtras | ForEach-Object {
   elseif ($_ -eq "HTTPie") { $userConfig.extras.httpie = $true }
   elseif ($_ -eq "DBeaver") { $userConfig.extras.dbeaver = $true }
   elseif ($_ -eq "MongoDB Shell") { $userConfig.extras.mongosh = $true }
+  elseif ($_ -eq "MySQL") { $userConfig.extras.mysql = $true }
   elseif ($_ -eq "Terraform") { $userConfig.extras.terraform = $true }
   elseif ($_ -eq "Helm") { $userConfig.extras.helm = $true }
   elseif ($_ -eq "k9s") { $userConfig.extras.k9s = $true }
@@ -119,6 +122,7 @@ $selectedExtras | ForEach-Object {
   elseif ($_ -eq "direnv") { $userConfig.extras.direnv = $true }
   elseif ($_ -eq "Neovim") { $userConfig.extras.neovim = $true }
   elseif ($_ -eq "Starship") { $userConfig.extras.starship = $true }
+  elseif ($_ -eq "Ollama") { $userConfig.extras.ollama = $true }
 }
 
 # Save user config for later phases

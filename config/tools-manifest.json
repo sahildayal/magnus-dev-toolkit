@@ -236,6 +236,20 @@
       "package_id": "JernejSimoncic.Wget",
       "category": "core"
     },
+    {
+      "name": "uv",
+      "command": "uvx",
+      "installer": "winget",
+      "package_id": "astral-sh.uv",
+      "category": "core"
+    },
+    {
+      "name": "SQLite",
+      "command": "sqlite3",
+      "installer": "winget",
+      "package_id": "SQLite.SQLite",
+      "category": "core"
+    },
 
     {
       "name": "Postman",
@@ -340,6 +354,22 @@
       "package_id": "Starship.Starship",
       "category": "extra",
       "selectionKey": "extras.starship"
+    },
+    {
+      "name": "MySQL",
+      "command": "mysql",
+      "installer": "winget",
+      "package_id": "Oracle.MySQL",
+      "category": "extra",
+      "selectionKey": "extras.mysql"
+    },
+    {
+      "name": "Ollama",
+      "command": "ollama",
+      "installer": "winget",
+      "package_id": "Ollama.Ollama",
+      "category": "extra",
+      "selectionKey": "extras.ollama"
     }
   ]
 }

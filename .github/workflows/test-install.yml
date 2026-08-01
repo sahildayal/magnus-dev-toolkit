@@ -53,7 +53,7 @@ jobs:
         shell: pwsh
         run: |
           $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          $checks = @("git", "gh", "rg", "fzf", "bat", "jq", "delta", "lazygit", "curl", "wget", "python", "kubectl")
+          $checks = @("git", "gh", "rg", "fzf", "bat", "jq", "delta", "lazygit", "curl", "wget", "uvx", "sqlite3", "python", "kubectl")
           $missing = @()
           foreach ($cmd in $checks) {
             if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) { $missing += $cmd }
@@ -65,7 +65,7 @@ jobs:
         shell: pwsh
         run: powershell -ExecutionPolicy Bypass -File scripts/phases/phase-3-config.ps1
 
-      - name: Phase 4 - MCP Setup (GitHub MCP only, no token)
+      - name: "Phase 4 - MCP Setup (GitHub MCP + always-on Filesystem/Memory/Git/Fetch, no token)"
         shell: pwsh
         run: powershell -ExecutionPolicy Bypass -File scripts/phases/phase-4-mcp.ps1
         # CI mode auto-detected via $env:GITHUB_ACTIONS - all Read-Host prompts skipped
@@ -77,8 +77,10 @@ jobs:
           if (-not (Test-Path $path)) { throw "FAIL: Gemini CLI settings.json not found at $path" }
           $content = Get-Content $path | ConvertFrom-Json
           if (-not $content.mcpServers) { throw "FAIL: mcpServers key missing in settings.json" }
-          if (-not $content.mcpServers.github) { throw "FAIL: github MCP not found in settings.json" }
-          Write-Host "PASS: Gemini CLI settings.json contains github MCP"
+          $required = @("github", "git", "fetch", "filesystem", "memory")
+          $missing = $required | Where-Object { -not $content.mcpServers.$_ }
+          if ($missing.Count -gt 0) { throw "FAIL: MCPs not found in settings.json: $($missing -join ', ')" }
+          Write-Host "PASS: Gemini CLI settings.json contains $($required -join ', ')"
           $content | ConvertTo-Json -Depth 5
 
       - name: Verify Cline config was written
@@ -94,8 +96,10 @@ jobs:
           $path = "$env:USERPROFILE\.codex\config.toml"
           if (-not (Test-Path $path)) { throw "FAIL: Codex config.toml not found at $path" }
           $content = Get-Content $path -Raw
-          if ($content -notmatch "\[mcp_servers.github\]") { throw "FAIL: github not found in config.toml" }
-          Write-Host "PASS: Codex config.toml contains github MCP"
+          $required = @("github", "git", "fetch")
+          $missing = $required | Where-Object { $content -notmatch "\[mcp_servers.$_\]" }
+          if ($missing.Count -gt 0) { throw "FAIL: MCPs not found in config.toml: $($missing -join ', ')" }
+          Write-Host "PASS: Codex config.toml contains $($required -join ', ')"
           Write-Host $content
 
       - name: Phase 4b - MCP Validation

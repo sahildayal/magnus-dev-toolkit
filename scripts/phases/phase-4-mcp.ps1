@@ -19,18 +19,20 @@ if (-not (Test-Path $userConfigPath)) {
     $userConfig = Get-Content $userConfigPath | ConvertFrom-Json
 }
 
-# -- Verified npm package registry --------------------------------------------
+# -- Verified MCP package registry ---------------------------------------------
 # docker MCP does not exist on npm - uses Docker Desktop MCP Gateway instead
-# git/fetch are Python-only (uvx), excluded from npm installs
+# git/fetch are installed via uvx (Python/PyPI), not npm
 $mcpRegistry = @{
-    github     = @{ pkg = "@modelcontextprotocol/server-github";     needsToken = $true;  tokenEnv = "GITHUB_PERSONAL_ACCESS_TOKEN";  tokenPrompt = "GitHub Personal Access Token (scopes: repo, read:org)" }
-    postgres   = @{ pkg = "@modelcontextprotocol/server-postgres";   needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
-    playwright = @{ pkg = "@playwright/mcp";                          needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
-    figma      = @{ pkg = "figma-mcp";                                needsToken = $true;  tokenEnv = "FIGMA_API_KEY";                 tokenPrompt = "Figma API Key (from figma.com/settings -> Access Tokens)" }
-    sentry     = @{ pkg = "@sentry/mcp-server";                       needsToken = $true;  tokenEnv = "SENTRY_AUTH_TOKEN";             tokenPrompt = "Sentry Auth Token (from sentry.io/settings/account/api/auth-tokens)" }
-    puppeteer  = @{ pkg = "@modelcontextprotocol/server-puppeteer";   needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
-    filesystem = @{ pkg = "@modelcontextprotocol/server-filesystem";  needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
-    memory     = @{ pkg = "@modelcontextprotocol/server-memory";      needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    github     = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-github";     needsToken = $true;  tokenEnv = "GITHUB_PERSONAL_ACCESS_TOKEN";  tokenPrompt = "GitHub Personal Access Token (scopes: repo, read:org)" }
+    postgres   = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-postgres";   needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    playwright = @{ installer = "npm";  pkg = "@playwright/mcp";                          needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    figma      = @{ installer = "npm";  pkg = "figma-mcp";                                needsToken = $true;  tokenEnv = "FIGMA_API_KEY";                 tokenPrompt = "Figma API Key (from figma.com/settings -> Access Tokens)" }
+    sentry     = @{ installer = "npm";  pkg = "@sentry/mcp-server";                       needsToken = $true;  tokenEnv = "SENTRY_AUTH_TOKEN";             tokenPrompt = "Sentry Auth Token (from sentry.io/settings/account/api/auth-tokens)" }
+    puppeteer  = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-puppeteer";   needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    filesystem = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-filesystem";  needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    memory     = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-memory";      needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    git        = @{ installer = "uvx";  pkg = "mcp-server-git";                           needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    fetch      = @{ installer = "uvx";  pkg = "mcp-server-fetch";                         needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
 }
 
 # -- Build list of MCPs to install based on user selection --------------------
@@ -41,7 +43,7 @@ if ($userConfig.mcps.playwright) { $toInstall += "playwright" }
 if ($userConfig.mcps.figma)      { $toInstall += "figma" }
 if ($userConfig.mcps.sentry)     { $toInstall += "sentry" }
 if ($userConfig.mcps.chrome)     { $toInstall += "puppeteer" }
-$toInstall += @("filesystem", "memory")   # always included
+$toInstall += @("filesystem", "memory", "git", "fetch")   # always included
 
 # Check Docker MCP Gateway separately (requires Docker Desktop 4.59+)
 # Source: https://github.com/docker/mcp-gateway
@@ -84,18 +86,33 @@ if (-not $CI) {
     Write-Host "  CI mode: skipping token prompts" -ForegroundColor DarkGray
 }
 
-# -- Pre-flight: confirm each package actually exists on the npm registry -----
+# -- Pre-flight: confirm each package actually exists on its registry ---------
 # before attempting to install it, so a bad/renamed package ID fails fast with
 # a clear reason instead of a confusing install error.
-Write-Host "Verifying MCP packages against the npm registry..." -ForegroundColor Cyan
+Write-Host "Verifying MCP packages against their registries..." -ForegroundColor Cyan
 $unreachable = @()
+$uvxAvailable = [bool](Get-Command uvx -ErrorAction SilentlyContinue)
 foreach ($id in $toInstall) {
     $entry = $mcpRegistry[$id]
     if (-not $entry) { continue }
-    & npm view $entry.pkg version 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "  $($entry.pkg) not found on npm registry (or registry unreachable) - will skip install."
-        $unreachable += $id
+
+    if ($entry.installer -eq 'uvx') {
+        if (-not $uvxAvailable) {
+            Write-Warning "  uvx not found on PATH (needed for $($entry.pkg)) - will skip install."
+            $unreachable += $id
+            continue
+        }
+        $status = (Invoke-WebRequest -Uri "https://pypi.org/pypi/$($entry.pkg)/json" -UseBasicParsing -ErrorAction SilentlyContinue).StatusCode
+        if ($status -ne 200) {
+            Write-Warning "  $($entry.pkg) not found on PyPI (or registry unreachable) - will skip install."
+            $unreachable += $id
+        }
+    } else {
+        & npm view $entry.pkg version 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "  $($entry.pkg) not found on npm registry (or registry unreachable) - will skip install."
+            $unreachable += $id
+        }
     }
 }
 if ($unreachable.Count -eq 0) {
@@ -114,6 +131,22 @@ foreach ($id in $toInstall) {
     $entry = $mcpRegistry[$id]
     if (-not $entry) {
         Write-Warning "No registry entry for '$id', skipping."
+        continue
+    }
+
+    if ($entry.installer -eq 'uvx') {
+        # uvx installs into an isolated env on first run - prefetch now so Phase 4b's
+        # validation handshake isn't the first (slow) invocation.
+        Write-Host "Prefetching $($entry.pkg) via uvx..." -ForegroundColor Cyan
+        & uvx $entry.pkg --help 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "FAILED to prefetch $($entry.pkg) via uvx (exit $LASTEXITCODE)"
+            $failedMcps += $id
+            continue
+        }
+
+        $mcpServers[$id] = @{ command = "uvx"; args = @($entry.pkg) }
+        Write-Host "  OK $id ready -> uvx $($entry.pkg)" -ForegroundColor Green
         continue
     }
 

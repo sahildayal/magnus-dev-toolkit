@@ -23,8 +23,8 @@ The installer walks through 6 phases automatically: detect what you already have
 ## Key Features
 
 - **Zero manual setup** — answer a few prompts once, then everything runs automatically.
-- **44 dev tools** — 15 always-on core CLI tools (Git, GitHub CLI, VS Code, ripgrep, fzf, bat, jq, lazygit, etc.), 13 opt-in power tools (Postman, Terraform, Helm, k9s, DBeaver, etc.), and 16 language/container/cloud tools selected in the wizard — installed via `winget` and `npm`.
-- **9 pre-configured MCPs** — GitHub, PostgreSQL, Playwright, Figma, Sentry, Puppeteer, Filesystem, Memory, and Docker — plus `mcp-router` itself, auto-registered as a 10th server.
+- **48 dev tools** — 17 always-on core CLI tools (Git, GitHub CLI, VS Code, ripgrep, fzf, bat, jq, lazygit, uv, SQLite, etc.), 15 opt-in power tools (Postman, Terraform, Helm, k9s, DBeaver, MySQL, Ollama, etc.), and 16 language/container/cloud tools selected in the wizard — installed via `winget` and `npm`.
+- **11 pre-configured MCPs** — GitHub, PostgreSQL, Playwright, Figma, Sentry, Puppeteer, Filesystem, Memory, Git, Fetch, and Docker — plus `mcp-router` itself, auto-registered as a 12th server.
 - **Intelligent routing (`mcp-router`)** — recommends the best MCP for a given task using capability, keyword, and cost scoring.
 - **Multi-CLI compatible** — writes each CLI's config in its own native format and location.
 
@@ -60,19 +60,21 @@ Each CLI gets its config written in the correct format to the correct path:
 
 ### MCP Package Registry
 
-| MCP | npm Package | Token Required |
-|---|---|---|
-| GitHub | `@modelcontextprotocol/server-github` | GitHub PAT |
-| PostgreSQL | `@modelcontextprotocol/server-postgres` | Connection string |
-| Playwright | `@playwright/mcp` | No |
-| Figma | `figma-mcp` | Figma API Key |
-| Sentry | `@sentry/mcp-server` | Sentry Auth Token |
-| Puppeteer | `@modelcontextprotocol/server-puppeteer` | No |
-| Filesystem | `@modelcontextprotocol/server-filesystem` | No |
-| Memory | `@modelcontextprotocol/server-memory` | No |
-| Docker | `docker mcp gateway start` (Docker Desktop 4.59+) | No |
+| MCP | Package / Command | Installer | Token Required |
+|---|---|---|---|
+| GitHub | `@modelcontextprotocol/server-github` | npm | GitHub PAT |
+| PostgreSQL | `@modelcontextprotocol/server-postgres` | npm | Connection string |
+| Playwright | `@playwright/mcp` | npm | No |
+| Figma | `figma-mcp` | npm | Figma API Key |
+| Sentry | `@sentry/mcp-server` | npm | Sentry Auth Token |
+| Puppeteer | `@modelcontextprotocol/server-puppeteer` | npm | No |
+| Filesystem | `@modelcontextprotocol/server-filesystem` | npm | No |
+| Memory | `@modelcontextprotocol/server-memory` | npm | No |
+| Git | `mcp-server-git` | `uvx` (Python) | No |
+| Fetch | `mcp-server-fetch` | `uvx` (Python) | No |
+| Docker | `docker mcp gateway start` (Docker Desktop 4.59+) | Docker CLI plugin | No |
 
-> Note: `git` and `fetch` MCPs are Python-only (`uvx`) and are not included in the npm-based installation.
+> Git and Fetch are Python packages run via `uvx` (no separate install step - `uv` handles caching on first run). Both are always included, same as Filesystem and Memory.
 
 ---
 
