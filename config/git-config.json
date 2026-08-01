@@ -1,6 +1,7 @@
 {
+  "_comment": "Optional. Phase 3 applies these ONLY when your global git identity is not already set, and never applies placeholder values. Leave blank to keep whatever git already has.",
   "user": {
-    "name": "Bikash",
-    "email": "bikash@example.com"
+    "name": "",
+    "email": ""
   }
 }
