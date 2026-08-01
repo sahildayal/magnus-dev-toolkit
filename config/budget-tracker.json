@@ -1,5 +1,5 @@
 {
-  "gemini": { "monthlyLimit": 20, "spent": 3.45 },
-  "claude": { "monthlyLimit": 20, "spent": 0 },
-  "codex": { "monthlyLimit": 20, "spent": 0 }
+  "gemini": { "monthlyLimit": 20, "spent": 0, "resetDate": "2026-09-01" },
+  "claude": { "monthlyLimit": 20, "spent": 0, "resetDate": "2026-09-01" },
+  "codex": { "monthlyLimit": 20, "spent": 0, "resetDate": "2026-09-01" }
 }

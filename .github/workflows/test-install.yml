@@ -1,0 +1,136 @@
+name: End-to-End Install Test (Windows)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-install:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify Node and npm versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Create dummy user-config (skip interactive, no tools, all MCPs off for speed)
+        shell: pwsh
+        run: |
+          $config = @{
+            tools = @{ java=$false; python=$false; nodejs=$false; csharp=$false; go=$false; rust=$false; cpp=$false }
+            containers = @{ docker=$false; kubernetes=$false }
+            cloud = @{ aws=$false; gcp=$false; azure=$false }
+            mcps = @{ github=$true; postgresql=$false; docker=$false; figma=$false; playwright=$false; sentry=$false; chrome=$false }
+          }
+          if (-not (Test-Path state)) { New-Item -ItemType Directory -Path state | Out-Null }
+          $config | ConvertTo-Json | Out-File state/user-config.json -Encoding UTF8
+          Write-Host "user-config.json written"
+
+      - name: Phase 1 - Machine Detection
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File scripts/phases/phase-1-detect.ps1
+
+      - name: Phase 2 - Tool Installation (no tools selected, just validates logic)
+        shell: pwsh
+        run: |
+          echo "" | powershell -ExecutionPolicy Bypass -File scripts/phases/phase-2-install.ps1
+
+      - name: Phase 3 - Environment Configuration
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File scripts/phases/phase-3-config.ps1
+
+      - name: Phase 4 - MCP Setup (GitHub MCP only, no token)
+        shell: pwsh
+        run: |
+          # Pre-supply empty responses to all Read-Host prompts
+          $inputScript = {
+            # GitHub token prompt -> skip
+            ""
+            # No postgres connection string prompt (postgres not selected)
+          }
+          powershell -ExecutionPolicy Bypass -File scripts/phases/phase-4-mcp.ps1
+
+      - name: Verify Gemini CLI config was written
+        shell: pwsh
+        run: |
+          $path = "$env:USERPROFILE\.gemini\settings.json"
+          if (-not (Test-Path $path)) { throw "FAIL: Gemini CLI settings.json not found at $path" }
+          $content = Get-Content $path | ConvertFrom-Json
+          if (-not $content.mcpServers) { throw "FAIL: mcpServers key missing in settings.json" }
+          if (-not $content.mcpServers.github) { throw "FAIL: github MCP not found in settings.json" }
+          Write-Host "PASS: Gemini CLI settings.json contains github MCP"
+          $content | ConvertTo-Json -Depth 5
+
+      - name: Verify Cline config was written
+        shell: pwsh
+        run: |
+          $path = "$env:USERPROFILE\.config\cline\cline_mcp_config.json"
+          if (-not (Test-Path $path)) { throw "FAIL: Cline config not found at $path" }
+          Write-Host "PASS: Cline config exists"
+
+      - name: Verify Codex config.toml was written
+        shell: pwsh
+        run: |
+          $path = "$env:USERPROFILE\.codex\config.toml"
+          if (-not (Test-Path $path)) { throw "FAIL: Codex config.toml not found at $path" }
+          $content = Get-Content $path -Raw
+          if ($content -notmatch "\[mcp_servers.github\]") { throw "FAIL: github not found in config.toml" }
+          Write-Host "PASS: Codex config.toml contains github MCP"
+          Write-Host $content
+
+      - name: Verify budget-tracker.json was initialized
+        shell: pwsh
+        run: |
+          $path = "$env:USERPROFILE\.config\magnus\budget-tracker.json"
+          if (-not (Test-Path $path)) { throw "FAIL: budget-tracker.json not found at $path" }
+          $bt = Get-Content $path | ConvertFrom-Json
+          if ($bt.gemini.spent -ne 0) { throw "FAIL: gemini.spent should be 0" }
+          Write-Host "PASS: budget-tracker.json initialized correctly"
+          $bt | ConvertTo-Json
+
+      - name: Phase 4b - MCP Validation
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts/phases/phase-4b-validate.ps1
+
+      - name: Verify validation results saved
+        shell: pwsh
+        run: |
+          $path = "state/mcp-validation.json"
+          if (-not (Test-Path $path)) { throw "FAIL: mcp-validation.json not found" }
+          $v = Get-Content $path | ConvertFrom-Json
+          Write-Host "PASS: Validation results:"
+          Write-Host "  Passed : $($v.passed)"
+          Write-Host "  Skipped: $($v.skipped)"
+          Write-Host "  Failed : $($v.failed)"
+
+      - name: Phase 5 - mcp-router install
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File scripts/phases/phase-5-mcp-router.ps1
+
+      - name: Phase 6 - Onboarding Report
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File scripts/phases/phase-6-report.ps1
+
+      - name: Upload validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: magnus-install-results
+          path: |
+            state/mcp-validation.json
+            state/installation-state.json
+            state/user-config.json
