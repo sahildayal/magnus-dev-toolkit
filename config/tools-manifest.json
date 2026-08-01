@@ -250,6 +250,13 @@
       "package_id": "SQLite.SQLite",
       "category": "core"
     },
+    {
+      "name": "Google Chrome",
+      "command": "chrome",
+      "installer": "winget",
+      "package_id": "Google.Chrome",
+      "category": "core"
+    },
 
     {
       "name": "Postman",

@@ -23,8 +23,8 @@ The installer walks through 6 phases automatically: detect what you already have
 ## Key Features
 
 - **Zero manual setup** — answer a few prompts once, then everything runs automatically.
-- **48 dev tools** — 17 always-on core CLI tools (Git, GitHub CLI, VS Code, ripgrep, fzf, bat, jq, lazygit, uv, SQLite, etc.), 15 opt-in power tools (Postman, Terraform, Helm, k9s, DBeaver, MySQL, Ollama, etc.), and 16 language/container/cloud tools selected in the wizard — installed via `winget` and `npm`.
-- **10 pre-configured MCPs** — GitHub, PostgreSQL, Playwright, Figma, Sentry, Puppeteer, Filesystem, Memory, Git, and Docker — plus `mcp-router` itself, auto-registered as an 11th server. (Fetch MCP is implemented but disabled by default — see [MCP Package Registry](#mcp-package-registry).)
+- **49 dev tools** — 18 always-on core tools (Git, GitHub CLI, VS Code, Google Chrome, ripgrep, fzf, bat, jq, lazygit, uv, SQLite, etc.), 15 opt-in power tools (Postman, Terraform, Helm, k9s, DBeaver, MySQL, Ollama, etc.), and 16 language/container/cloud tools selected in the wizard — installed via `winget` and `npm`.
+- **10 pre-configured MCPs** — GitHub, PostgreSQL, Playwright, Figma, Sentry, Chrome DevTools, Filesystem, Memory, Git, and Docker — plus `mcp-router` itself, auto-registered as an 11th server. (Fetch MCP is implemented but disabled by default — see [MCP Package Registry](#mcp-package-registry).)
 - **Intelligent routing (`mcp-router`)** — recommends the best MCP for a given task using capability, keyword, and cost scoring.
 - **Multi-CLI compatible** — writes each CLI's config in its own native format and location.
 
@@ -67,13 +67,15 @@ Each CLI gets its config written in the correct format to the correct path:
 | Playwright | `@playwright/mcp` | npm | No |
 | Figma | `figma-mcp` | npm | Figma API Key |
 | Sentry | `@sentry/mcp-server` | npm | Sentry Auth Token |
-| Puppeteer | `@modelcontextprotocol/server-puppeteer` | npm | No |
+| Chrome DevTools | [`chrome-devtools-mcp`](https://github.com/ChromeDevTools/chrome-devtools-mcp) | `npx` | No |
 | Filesystem | `@modelcontextprotocol/server-filesystem` | npm | No |
 | Memory | `@modelcontextprotocol/server-memory` | npm | No |
 | Git | `mcp-server-git` | `uvx` (Python) | No |
 | Fetch | `mcp-server-fetch` | `uvx` (Python) | **Disabled** |
 | Docker | `docker mcp gateway start` (Docker Desktop 4.59+) | Docker CLI plugin | No |
 
+> Chrome DevTools MCP is Google's official Chrome automation MCP - deep DevTools access (network inspection, performance traces, console, source-mapped stack traces), not just generic browser automation. Requires a real installed Google Chrome (added as a core tool). Runs via `npx chrome-devtools-mcp@latest --headless --isolated` per upstream's own recommendation (always latest version, no separate install step).
+>
 > Git and Fetch are Python packages run via `uvx` (no separate install step - `uv` handles caching on first run). Git is always included, same as Filesystem and Memory.
 >
 > **Fetch is implemented but not auto-installed.** As of this writing, `mcp-server-fetch` on PyPI has a broken dependency - it imports `McpError` from the `mcp` SDK, which was renamed to `MCPError` in a newer SDK release that `mcp-server-fetch`'s own version constraints don't exclude. Running `uvx mcp-server-fetch` fails with an `ImportError` before the server even starts. This is an upstream bug, not something this toolkit can fix. To re-enable once upstream publishes a fix, add `"fetch"` to the always-included list in `scripts/phases/phase-4-mcp.ps1`.

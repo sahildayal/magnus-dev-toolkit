@@ -15,6 +15,15 @@ $ErrorActionPreference = 'SilentlyContinue'
 # registry mid-session, so freshly-installed commands (uvx) would otherwise be invisible here.
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
+# Every MCP in this phase needs npm/npx, but Node.js is an opt-in "language" in the
+# wizard, not guaranteed installed. Fail fast with a clear message rather than a
+# confusing "npm not found" error deep inside the install loop.
+if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+    Write-Warning "npm not found - Node.js is required for MCP setup even if you didn't select it as a language."
+    Write-Warning "Install Node.js (winget install OpenJS.NodeJS) and re-run this phase."
+    exit 1
+}
+
 $userConfigPath = "$PSScriptRoot\..\..\state\user-config.json"
 if (-not (Test-Path $userConfigPath)) {
     $userConfig = @{
@@ -33,7 +42,10 @@ $mcpRegistry = @{
     playwright = @{ installer = "npm";  pkg = "@playwright/mcp";                          needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     figma      = @{ installer = "npm";  pkg = "figma-mcp";                                needsToken = $true;  tokenEnv = "FIGMA_API_KEY";                 tokenPrompt = "Figma API Key (from figma.com/settings -> Access Tokens)" }
     sentry     = @{ installer = "npm";  pkg = "@sentry/mcp-server";                       needsToken = $true;  tokenEnv = "SENTRY_AUTH_TOKEN";             tokenPrompt = "Sentry Auth Token (from sentry.io/settings/account/api/auth-tokens)" }
-    puppeteer  = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-puppeteer";   needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
+    # chrome-devtools: official Google MCP (https://github.com/ChromeDevTools/chrome-devtools-mcp).
+    # Run via npx (not npm install -g) per upstream's own recommendation, so it always
+    # runs the latest published version. Requires a real installed Google Chrome.
+    chrome     = @{ installer = "npx";  pkg = "chrome-devtools-mcp";                      needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     filesystem = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-filesystem";  needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     memory     = @{ installer = "npm";  pkg = "@modelcontextprotocol/server-memory";      needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     git        = @{ installer = "uvx";  pkg = "mcp-server-git";                           needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
@@ -53,7 +65,7 @@ if ($userConfig.mcps.postgresql) { $toInstall += "postgres" }
 if ($userConfig.mcps.playwright) { $toInstall += "playwright" }
 if ($userConfig.mcps.figma)      { $toInstall += "figma" }
 if ($userConfig.mcps.sentry)     { $toInstall += "sentry" }
-if ($userConfig.mcps.chrome)     { $toInstall += "puppeteer" }
+if ($userConfig.mcps.chrome)     { $toInstall += "chrome" }
 $toInstall += @("filesystem", "memory", "git")   # always included - see note above re: fetch
 
 # Check Docker MCP Gateway separately (requires Docker Desktop 4.59+)
@@ -158,6 +170,26 @@ foreach ($id in $toInstall) {
 
         $mcpServers[$id] = @{ command = "uvx"; args = @($entry.pkg) }
         Write-Host "  OK $id ready -> uvx $($entry.pkg)" -ForegroundColor Green
+        continue
+    }
+
+    if ($entry.installer -eq 'npx') {
+        # npx pulls (and caches) the package fresh from npm on each launch rather than
+        # a separate global install - prefetch now so Phase 4b's validation handshake
+        # isn't the first (slow) invocation.
+        Write-Host "Prefetching $($entry.pkg) via npx..." -ForegroundColor Cyan
+        & npx -y "$($entry.pkg)@latest" --help 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "FAILED to prefetch $($entry.pkg) via npx (exit $LASTEXITCODE)"
+            $failedMcps += $id
+            continue
+        }
+
+        # headless: works without a display (CI, servers). isolated: throwaway profile,
+        # avoids leftover-state issues on repeat runs. no-usage-statistics: opt out of
+        # Google's telemetry by default, matching this project's no-hidden-tracking stance.
+        $mcpServers[$id] = @{ command = "npx"; args = @("-y", "$($entry.pkg)@latest", "--headless", "--isolated", "--no-usage-statistics") }
+        Write-Host "  OK $id ready -> npx $($entry.pkg)@latest" -ForegroundColor Green
         continue
     }
 
