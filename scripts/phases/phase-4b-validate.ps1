@@ -56,14 +56,15 @@ foreach ($name in ($mcpConfig.mcpServers | Get-Member -MemberType NoteProperty).
         $proc.StandardInput.WriteLine($initMsg)
         $proc.StandardInput.Close()
 
-        # Read response with a 5s timeout
+        # Read response with a 30s timeout - first-run MCP spawns (e.g. Playwright
+        # downloading/launching Chromium) can take 10-15s, so 5s was giving false timeouts.
         $outputTask = $proc.StandardOutput.ReadToEndAsync()
-        $timedOut   = -not $proc.WaitForExit(5000)
+        $timedOut   = -not $proc.WaitForExit(30000)
 
         if ($timedOut) {
             $proc.Kill()
-            $skipped += "$name (timeout - process spawned but did not respond in 5s)"
-            Write-Host "  WARN [$name] -> spawned but no response in 5s (may need token/args)" -ForegroundColor Yellow
+            $skipped += "$name (timeout - process spawned but did not respond in 30s)"
+            Write-Host "  WARN [$name] -> spawned but no response in 30s (may need token/args)" -ForegroundColor Yellow
         } else {
             $output = $outputTask.Result
             if ($output -match '"result"' -or $output -match '"serverInfo"' -or $output -match '"protocolVersion"') {

@@ -84,12 +84,33 @@ if (-not $CI) {
     Write-Host "  CI mode: skipping token prompts" -ForegroundColor DarkGray
 }
 
+# -- Pre-flight: confirm each package actually exists on the npm registry -----
+# before attempting to install it, so a bad/renamed package ID fails fast with
+# a clear reason instead of a confusing install error.
+Write-Host "Verifying MCP packages against the npm registry..." -ForegroundColor Cyan
+$unreachable = @()
+foreach ($id in $toInstall) {
+    $entry = $mcpRegistry[$id]
+    if (-not $entry) { continue }
+    & npm view $entry.pkg version 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "  $($entry.pkg) not found on npm registry (or registry unreachable) - will skip install."
+        $unreachable += $id
+    }
+}
+if ($unreachable.Count -eq 0) {
+    Write-Host "  OK all $($toInstall.Count) MCP packages verified" -ForegroundColor Green
+}
+Write-Host ""
+
 # -- Install each MCP globally via npm ----------------------------------------
 $npmGlobal = "$env:APPDATA\npm"
 $mcpServers = @{}
 $failedMcps = @()
+$failedMcps += $unreachable
 
 foreach ($id in $toInstall) {
+    if ($unreachable -contains $id) { continue }
     $entry = $mcpRegistry[$id]
     if (-not $entry) {
         Write-Warning "No registry entry for '$id', skipping."
@@ -134,7 +155,11 @@ foreach ($id in $toInstall) {
     if ($id -eq "postgres" -and -not $CI) {
         Write-Host "  PostgreSQL connection string (e.g. postgresql://localhost/mydb):" -ForegroundColor Gray
         $pgConn = Read-Host "  Enter connection string (or ENTER to skip)"
-        if ($pgConn) { $serverEntry.args = @($absPath, $pgConn.Trim()) }
+        $pgConn = $pgConn.Trim()
+        if ($pgConn -and $pgConn -notmatch '^postgres(ql)?://') {
+            Write-Warning "  That doesn't look like a PostgreSQL connection string (expected postgresql://...). Using it anyway, but the MCP will likely fail validation."
+        }
+        if ($pgConn) { $serverEntry.args = @($absPath, $pgConn) }
     }
 
     $mcpServers[$id] = $serverEntry
@@ -242,4 +267,14 @@ if ($failedMcps.Count -gt 0) {
 } else {
     Write-Host ""
     Write-Host "OK Phase 4 (MCP Setup) completed - $($mcpServers.Keys.Count) MCPs configured" -ForegroundColor Green
+}
+
+if (-not $CI) {
+    Write-Host ""
+    Write-Host "MANUAL CHECK RECOMMENDED:" -ForegroundColor Yellow
+    Write-Host "  The config files above are written based on each CLI's documented format," -ForegroundColor Gray
+    Write-Host "  but that hasn't been confirmed against a real running CLI. Verify now:" -ForegroundColor Gray
+    Write-Host "    1. Open Gemini CLI (or Cline / Codex) and run: /mcp" -ForegroundColor Gray
+    Write-Host "    2. Confirm you see: $($mcpServers.Keys -join ', ')" -ForegroundColor Gray
+    Write-Host "    3. If any are missing, the config format/path may be wrong for that CLI version." -ForegroundColor Gray
 }
