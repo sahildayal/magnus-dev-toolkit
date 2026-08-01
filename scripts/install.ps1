@@ -17,5 +17,6 @@ if (-not $SkipInteractive) {
 & "$ScriptDir\phases\phase-2-install.ps1"
 & "$ScriptDir\phases\phase-3-config.ps1"
 & "$ScriptDir\phases\phase-4-mcp.ps1"
+& "$ScriptDir\phases\phase-4b-validate.ps1"
 & "$ScriptDir\phases\phase-5-mcp-router.ps1"
 & "$ScriptDir\phases\phase-6-report.ps1"
