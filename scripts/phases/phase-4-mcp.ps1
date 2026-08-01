@@ -33,6 +33,45 @@ if (-not (Test-Path $userConfigPath)) {
     $userConfig = Get-Content $userConfigPath | ConvertFrom-Json
 }
 
+# Does this server actually come up, or does it crash on startup?
+#
+# `--help` is NOT sufficient: mcp-server-git's SDK incompatibility only triggers
+# inside serve(), which --help exits before ever reaching. That is exactly how a
+# broken server slipped through a green pipeline before. So really launch it and
+# see whether it survives - a healthy stdio server sits waiting on stdin, while a
+# broken one dies immediately with a traceback.
+function Test-McpServerStarts {
+    param([string]$Command, [string[]]$CmdArgs, [int]$SettleMs = 6000)
+
+    try {
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = $Command
+        $psi.Arguments = ($CmdArgs | ForEach-Object { "`"$_`"" }) -join " "
+        $psi.UseShellExecute = $false
+        $psi.RedirectStandardInput = $true
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.CreateNoWindow = $true
+
+        $proc = [System.Diagnostics.Process]::Start($psi)
+        $exitedEarly = $proc.WaitForExit($SettleMs)
+
+        if (-not $exitedEarly) {
+            # Still alive after settling: it booted and is waiting for input.
+            try { $proc.Kill() } catch { }
+            return @{ ok = $true; detail = "" }
+        }
+
+        if ($proc.ExitCode -eq 0) { return @{ ok = $true; detail = "" } }
+
+        $stderr = $proc.StandardError.ReadToEnd()
+        $lastLine = ($stderr -split "`n" | Where-Object { $_.Trim() } | Select-Object -Last 1)
+        return @{ ok = $false; detail = "exit $($proc.ExitCode): $($lastLine -replace '\s+', ' ')" }
+    } catch {
+        return @{ ok = $false; detail = "could not start: $_" }
+    }
+}
+
 # -- Verified MCP package registry ---------------------------------------------
 # docker MCP does not exist on npm - uses Docker Desktop MCP Gateway instead
 # git/fetch are installed via uvx (Python/PyPI), not npm
@@ -57,9 +96,13 @@ $mcpRegistry = @{
     # Constraining to mcp<2 resolves 1.29.0 and both work correctly (verified against a
     # real MCP client: git exposes 12 tools, fetch exposes 1).
     #
-    # Upstream tracking: modelcontextprotocol/servers issues #4580 (git), #4560 (fetch).
-    # REVISIT once upstream ports these to the 2.x SDK (PRs #4564 git, #4565 fetch) and
-    # publishes - at that point drop the pin so they track the current SDK again.
+    # This `pin` is a FALLBACK, not a permanent constraint. Phase 4 tries the
+    # unconstrained resolution first and verifies the server actually starts, so the
+    # day upstream publishes a fixed release this pin stops being used automatically -
+    # no edit here required. Leaving it costs nothing; it simply stops applying.
+    #
+    # Upstream tracking: modelcontextprotocol/servers issues #4580 (git), #4560 (fetch);
+    # PRs #4564 (git -> SDK v2), #4565 (fetch -> SDK v2), #4577 (cap <2 across servers).
     git        = @{ installer = "uvx";  pkg = "mcp-server-git";                           pin = "mcp<2"; needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
     fetch      = @{ installer = "uvx";  pkg = "mcp-server-fetch";                         pin = "mcp<2"; needsToken = $false; tokenEnv = "";                              tokenPrompt = "" }
 }
@@ -182,25 +225,53 @@ foreach ($id in $toInstall) {
     }
 
     if ($entry.installer -eq 'uvx') {
-        # Build args once and reuse for both the prefetch and the generated config, so
-        # what we validate is byte-for-byte what MCP clients will actually launch.
-        # A `pin` constrains a transitive dep (see registry notes re: the mcp SDK).
-        $uvxArgs = @()
-        if ($entry.pin) { $uvxArgs += @("--with", $entry.pin) }
-        $uvxArgs += $entry.pkg
+        # Self-healing dependency resolution.
+        #
+        # A `pin` exists only because a package's upstream metadata is currently too
+        # loose (see the registry notes re: the mcp SDK). Rather than pin forever, try
+        # the unconstrained resolution FIRST and actually verify the server starts. If
+        # it does, upstream has been fixed and we use it - no pin, no code change, no
+        # stale SDK. The pin is used only as a fallback when the latest genuinely
+        # crashes, and we say so out loud.
+        $candidates = @()
+        if ($entry.pin) {
+            $candidates += ,@{ label = "latest"; args = @($entry.pkg) }
+            $candidates += ,@{ label = "pinned $($entry.pin)"; args = @("--with", $entry.pin, $entry.pkg) }
+        } else {
+            $candidates += ,@{ label = "latest"; args = @($entry.pkg) }
+        }
 
-        # uvx resolves + caches into an isolated env on first run - prefetch now so
-        # Phase 4b's validation isn't paying that cost on its first invocation.
-        Write-Host "Prefetching $($entry.pkg) via uvx..." -ForegroundColor Cyan
-        & $uvxPath @uvxArgs --help 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "FAILED to prefetch $($entry.pkg) via uvx (exit $LASTEXITCODE)"
+        $chosen = $null
+        $whyFellBack = ""
+        foreach ($candidate in $candidates) {
+            Write-Host "Resolving $($entry.pkg) via uvx ($($candidate.label))..." -ForegroundColor Cyan
+
+            # Prefetch so uvx's resolve+download cost isn't paid during the start test.
+            & $uvxPath @($candidate.args) --help 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                $whyFellBack = "could not resolve"
+                continue
+            }
+
+            $health = Test-McpServerStarts -Command $uvxPath -CmdArgs $candidate.args
+            if ($health.ok) { $chosen = $candidate; break }
+
+            $whyFellBack = $health.detail
+            Write-Host "  $($candidate.label) does not start ($($health.detail))" -ForegroundColor DarkYellow
+        }
+
+        if (-not $chosen) {
+            Write-Warning "FAILED to get a working $($entry.pkg) via uvx - $whyFellBack"
             $failedMcps += $id
             continue
         }
 
-        $mcpServers[$id] = @{ command = $uvxPath; args = $uvxArgs }
-        Write-Host "  OK $id ready -> uvx $($uvxArgs -join ' ')" -ForegroundColor Green
+        $mcpServers[$id] = @{ command = $uvxPath; args = $chosen.args }
+        if ($chosen.label -eq "latest" -and $entry.pin) {
+            Write-Host "  OK $id ready -> uvx $($entry.pkg) (latest SDK works; '$($entry.pin)' pin no longer needed)" -ForegroundColor Green
+        } else {
+            Write-Host "  OK $id ready -> uvx $($chosen.args -join ' ')" -ForegroundColor Green
+        }
         continue
     }
 

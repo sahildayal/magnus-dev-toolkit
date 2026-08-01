@@ -76,7 +76,9 @@ Each CLI gets its config written in the correct format to the correct path:
 
 > Chrome DevTools MCP is Google's official Chrome automation MCP - deep DevTools access (network inspection, performance traces, console, source-mapped stack traces), not just generic browser automation. Requires a real installed Google Chrome (added as a core tool). Runs via `npx.cmd chrome-devtools-mcp@latest --headless --isolated` per upstream's own recommendation (always latest version, no separate install step) - `npx.cmd` rather than bare `npx`, since Windows process-spawning APIs that bypass the shell can't resolve the bare `.cmd` shim.
 >
-> **Why Git and Fetch pin `mcp<2`:** both packages declare their `mcp` SDK dependency with no upper bound (`mcp>=1.0.0` / `mcp>=1.1.3`), so a resolver picks up SDK **2.0.0**, which shipped breaking API changes — `mcp-server-fetch` then dies with `ImportError: cannot import name 'McpError'` (renamed `MCPError`) and `mcp-server-git` with `AttributeError: 'Server' object has no attribute 'list_tools'`. Constraining to `mcp<2` resolves 1.29.0 and both work correctly. Upstream tracking: [#4580](https://github.com/modelcontextprotocol/servers/issues/4580) (git), [#4560](https://github.com/modelcontextprotocol/servers/issues/4560) (fetch). Once upstream ports these to the 2.x SDK, drop the `pin` field in `scripts/phases/phase-4-mcp.ps1` so they track the current SDK again.
+> **Why Git and Fetch constrain `mcp<2`, and why it's self-healing:** both packages declare their `mcp` SDK dependency with no upper bound (`mcp>=1.0.0` / `mcp>=1.1.3`), so a resolver picks up SDK **2.0.0**, which shipped breaking API changes — `mcp-server-fetch` then dies with `ImportError: cannot import name 'McpError'` (renamed `MCPError`) and `mcp-server-git` with `AttributeError: 'Server' object has no attribute 'list_tools'`. SDK 2.0 is a genuine API redesign (the `list_tools`/`call_tool` decorators these servers are built on no longer exist), so the real fix has to land upstream.
+>
+> Rather than pin forever, **Phase 4 tries the unconstrained resolution first and verifies the server actually starts** — launching it for real, since `--help` exits before the crashing code path is even reached. The `mcp<2` constraint is applied only if the latest genuinely fails. The day upstream publishes a fixed release, your machine picks it up automatically with no edit to this repo. Upstream tracking: [#4580](https://github.com/modelcontextprotocol/servers/issues/4580) (git), [#4560](https://github.com/modelcontextprotocol/servers/issues/4560) (fetch), [#4577](https://github.com/modelcontextprotocol/servers/pull/4577) (cap PR).
 >
 > **Fetch is implemented but not auto-installed.** As of this writing, `mcp-server-fetch` on PyPI has a broken dependency - it imports `McpError` from the `mcp` SDK, which was renamed to `MCPError` in a newer SDK release that `mcp-server-fetch`'s own version constraints don't exclude. Running `uvx mcp-server-fetch` fails with an `ImportError` before the server even starts. This is an upstream bug, not something this toolkit can fix. To re-enable once upstream publishes a fix, add `"fetch"` to the always-included list in `scripts/phases/phase-4-mcp.ps1`.
 
@@ -103,6 +105,19 @@ The test does a **real install** of a representative subset on a fresh Windows r
 - `~/.gemini/settings.json`, `~/.config/cline/cline_mcp_config.json` and `~/.codex/config.toml` are each written in that CLI's native format, containing the expected servers
 - **Every MCP completes a real protocol handshake** — Phase 4b connects with the official MCP client SDK and enumerates each server's tools, and CI asserts the expected servers actually passed (not merely that none failed)
 - `mcp-router`'s `recommend_mcp` returns a real, correctly-scored recommendation via an actual stdio call
+
+### Known limitations
+
+What CI genuinely does **not** cover, stated plainly:
+
+| Not covered | Why | Risk |
+|---|---|---|
+| **Docker MCP Gateway** | Needs Docker Desktop 4.59+ and nested virtualization, which GitHub's hosted runners don't expose | Detection degrades gracefully (skips with a warning) if Docker is absent, but the configured gateway itself is untested end-to-end |
+| **The 13 opt-in power tools** | Not selected in the representative CI run, to keep it fast | Their winget IDs are all verified live against `winget show`, and they install through the same verified code path as the core tools — but no end-to-end install proof |
+| **Other languages / cloud CLIs** | Same reason — CI installs Python + kubectl as representatives | Same as above: verified IDs, shared code path, no per-tool proof |
+| **Real Gemini CLI / Cline / Codex** | CI verifies the config *files* are written in each CLI's documented format, but never launches those CLIs | If a CLI changes its config schema, the files would still be written and validated while that CLI silently ignores them. Phase 4 prints a reminder to run `/mcp` once and confirm |
+
+The MCP servers themselves are the strongly-tested part: each one completes a real protocol handshake and tool listing on every push.
 
 ---
 
