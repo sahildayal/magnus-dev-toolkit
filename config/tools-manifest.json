@@ -259,6 +259,14 @@
     },
 
     {
+      "name": "Claude Code",
+      "command": "claude",
+      "installer": "npm",
+      "package_name": "@anthropic-ai/claude-code",
+      "category": "core"
+    },
+
+    {
       "name": "Postman",
       "command": "postman",
       "installer": "winget",

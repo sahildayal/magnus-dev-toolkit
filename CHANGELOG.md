@@ -3,7 +3,24 @@
 ## Unreleased
 
 Fixes from a fresh-machine production-readiness pass, before running this on an
-actual new Windows 10 laptop.
+actual new Windows 10 laptop, plus adding Claude Code as an installed tool.
+
+**Added Claude Code CLI as a core tool** (`@anthropic-ai/claude-code` via npm). It's
+core rather than opt-in, so it installs even for users who never selected Node.js as
+a language - which meant it needed its own dependency handling:
+
+- Phase 2 now bootstraps Node.js automatically (reusing the manifest's own Node.js
+  entry, so it's installed through the same verified path and shown in the
+  confirmation gate) whenever a selected tool needs npm and npm isn't already there.
+- PATH is now refreshed immediately after each successful winget install inside
+  Phase 2's loop, not just once at the top of the phase - otherwise Node.js landing
+  mid-loop wouldn't be visible yet to Claude Code's npm install right after it in the
+  same run.
+- Tool count: 49 -> 50 (18 -> 19 core tools).
+
+Scope note: this adds *installation* only. Claude Code's own MCP config
+(`~/.claude.json`) is not written by Phase 4 - that file also holds auth/session
+state, and merging into it safely is a separate piece of work, not requested here.
 
 - **Phase 4 corrupted `~/.codex/config.toml` on every re-run.** It appended a fresh
   `[mcp_servers.*]` table for every configured server instead of overwriting, so

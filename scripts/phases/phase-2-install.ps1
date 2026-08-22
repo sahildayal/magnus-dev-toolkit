@@ -52,6 +52,20 @@ $toInstall = $manifest.tools | Where-Object {
     }
 }
 
+# npm-installed tools (Claude Code, and Yarn/pnpm when Node.js was selected) need
+# Node.js. Claude Code is core, so it installs even for users who never selected
+# Node.js as a language - without this, it would just fail with a confusing "npm not
+# recognized" instead of pulling in its own real dependency. Reuses the manifest's own
+# Node.js entry (rather than a separate ad-hoc winget call) so it shows in the
+# confirmation gate below and installs through the same verified code path.
+$needsNpm = $toInstall | Where-Object { $_.installer -eq 'npm' }
+if ($needsNpm -and -not (Get-Command npm -ErrorAction SilentlyContinue) -and -not ($toInstall | Where-Object { $_.command -eq 'node' })) {
+    $nodeEntry = $manifest.tools | Where-Object { $_.command -eq 'node' } | Select-Object -First 1
+    if ($nodeEntry) {
+        $toInstall = @($nodeEntry) + @($toInstall)
+    }
+}
+
 Write-Host ""
 Write-Host "┌─────────────────────────────────────────────┐" -ForegroundColor Yellow
 Write-Host "│  HARD GATE: About to Install               │" -ForegroundColor Yellow
@@ -97,6 +111,12 @@ $toInstall | ForEach-Object {
     if ($tool.installer -eq 'winget') {
         & winget install --id $tool.package_id -e -h --force --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
         $success = ($LASTEXITCODE -eq 0)
+        if ($success) {
+            # Refresh PATH immediately (not just at the top of the phase) - Node.js can
+            # land mid-loop via the npm-dependency bootstrap above, and the very next
+            # tool in this same loop (e.g. Claude Code) needs npm to already be visible.
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+        }
     } elseif ($tool.installer -eq 'npm') {
         & npm install -g $tool.package_name --loglevel=error 2>&1 | Out-Null
         $success = ($LASTEXITCODE -eq 0)

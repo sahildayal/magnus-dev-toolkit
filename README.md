@@ -23,7 +23,7 @@ The installer walks through 6 phases automatically: detect what you already have
 ## Key Features
 
 - **Zero manual setup** — answer a few prompts once, then everything runs automatically.
-- **49 dev tools** — 18 always-on core tools (Git, GitHub CLI, VS Code, Google Chrome, ripgrep, fzf, bat, jq, lazygit, uv, SQLite, etc.), 15 opt-in power tools (Postman, Terraform, Helm, k9s, DBeaver, MySQL, Ollama, etc.), and 16 language/container/cloud tools selected in the wizard — installed via `winget` and `npm`.
+- **50 dev tools** — 19 always-on core tools (Git, GitHub CLI, VS Code, Google Chrome, Claude Code, ripgrep, fzf, bat, jq, lazygit, uv, SQLite, etc.), 15 opt-in power tools (Postman, Terraform, Helm, k9s, DBeaver, MySQL, Ollama, etc.), and 16 language/container/cloud tools selected in the wizard — installed via `winget` and `npm`.
 - **11 pre-configured MCPs** — GitHub, PostgreSQL, Playwright, Figma, Sentry, Chrome DevTools, Filesystem, Memory, Git, Fetch, and Docker — plus `mcp-router` itself, auto-registered as a 12th server.
 - **Intelligent routing (`mcp-router`)** — recommends the best MCP for a given task using capability, keyword, and cost scoring.
 - **Multi-CLI compatible** — writes each CLI's config in its own native format and location.

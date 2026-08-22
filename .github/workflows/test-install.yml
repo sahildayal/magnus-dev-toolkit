@@ -59,7 +59,7 @@ jobs:
         shell: pwsh
         run: |
           $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          $checks = @("git", "gh", "rg", "fzf", "bat", "jq", "delta", "lazygit", "curl", "wget", "uvx", "sqlite3", "python", "kubectl")
+          $checks = @("git", "gh", "rg", "fzf", "bat", "jq", "delta", "lazygit", "curl", "wget", "uvx", "sqlite3", "python", "kubectl", "claude")
           $missing = @()
           foreach ($cmd in $checks) {
             if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) { $missing += $cmd }
