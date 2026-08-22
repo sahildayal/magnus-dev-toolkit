@@ -1,5 +1,39 @@
 # Changelog
 
+## Unreleased
+
+Fixes from a fresh-machine production-readiness pass, before running this on an
+actual new Windows 10 laptop.
+
+- **Phase 4 corrupted `~/.codex/config.toml` on every re-run.** It appended a fresh
+  `[mcp_servers.*]` table for every configured server instead of overwriting, so
+  re-running Phase 4 (e.g. to add a token or fix an MCP) wrote duplicate TOML tables
+  for every server, all previous ones included. Same duplication bug already fixed
+  for the PowerShell alias block, just missed here. Now overwrites, matching how Cline's
+  config is already handled.
+- **Phase 4's PyPI reachability check could fail silently on older Windows 10.**
+  Windows PowerShell 5.1's `Invoke-WebRequest` doesn't enable TLS 1.2 by default on
+  every Windows 10 / .NET Framework combination. Without it, the check that decides
+  whether `mcp-server-git`/`mcp-server-fetch` are reachable comes back with a `$null`
+  status instead of an exception, and both get silently skipped as "unreachable" even
+  though the network is fine. `SecurityProtocol` is now forced to TLS 1.2 up front.
+- **Phase 2 had no winget preflight check.** On a Windows 10 machine where winget/App
+  Installer isn't present or is out of date, every single tool install would have
+  failed one at a time with no indication of the actual cause. Now fails fast with a
+  direct link to update it.
+- **The final onboarding report referenced commands that don't exist**
+  (`magnus-token-status`, `magnus-update`, `magnus-check-versions`, `magnus-reset`) -
+  none of these were ever implemented as aliases or scripts. Removed; replaced with
+  steps that reflect what the toolkit actually does. Also removed a fabricated
+  "Codex is 10x cheaper than Claude" example number that no code path computes, and
+  softened a few "OK X done" lines that were unconditionally true even when the
+  underlying step (e.g. VS Code extensions) was actually skipped.
+- **Documented a real coverage gap**: `mcp-router`'s manifest only has scoring entries
+  for 3 of the 11 configured MCPs (GitHub, PostgreSQL, Playwright) - Figma, Sentry,
+  Chrome, Filesystem, Memory, Git, Fetch, and Docker have no entry, so a task matching
+  any of them gets no relevant recommendation. Added to Known limitations rather than
+  papering over it with invented cost/capability numbers for services never measured.
+
 ## v1.1.1
 
 Fixes for bugs found while auditing production readiness — several had already

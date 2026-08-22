@@ -116,6 +116,7 @@ What CI genuinely does **not** cover, stated plainly:
 | **The 13 opt-in power tools** | Not selected in the representative CI run, to keep it fast | Their winget IDs are all verified live against `winget show`, and they install through the same verified code path as the core tools — but no end-to-end install proof |
 | **Other languages / cloud CLIs** | Same reason — CI installs Python + kubectl as representatives | Same as above: verified IDs, shared code path, no per-tool proof |
 | **Real Gemini CLI / Cline / Codex** | CI verifies the config *files* are written in each CLI's documented format, but never launches those CLIs | If a CLI changes its config schema, the files would still be written and validated while that CLI silently ignores them. Phase 4 prints a reminder to run `/mcp` once and confirm |
+| **`mcp-router`'s manifest** (`config/mcp-manifest.json`) | Only 3 of the 11 configured MCPs (GitHub, PostgreSQL, Playwright) have scoring entries | For a task matching Figma, Sentry, Chrome, Filesystem, Memory, Git, Fetch, or Docker, the router has nothing to recommend and will pick whichever of the 3 scores highest by coincidence, not the actually-relevant server |
 
 The MCP servers themselves are the strongly-tested part: each one completes a real protocol handshake and tool listing on every push.
 

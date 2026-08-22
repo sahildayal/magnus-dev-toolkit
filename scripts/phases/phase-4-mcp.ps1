@@ -10,6 +10,13 @@ if ($env:GITHUB_ACTIONS -eq 'true') { $CI = $true }
 # treat as terminating errors. We check $LASTEXITCODE manually instead.
 $ErrorActionPreference = 'SilentlyContinue'
 
+# Windows PowerShell 5.1 runs on .NET Framework, whose ServicePointManager default
+# doesn't include TLS 1.2 on older Windows 10 builds/.NET versions. Without this, the
+# PyPI preflight check below (Invoke-WebRequest) fails the TLS handshake silently -
+# StatusCode comes back $null, not an exception - and git/fetch get marked
+# "unreachable" and skipped even though the network is fine.
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 # Refresh PATH from the registry - a PowerShell process's in-memory PATH doesn't
 # auto-update when an earlier phase's installer (e.g. uv in Phase 2) writes to the
 # registry mid-session, so freshly-installed commands (uvx) would otherwise be invisible here.
@@ -430,11 +437,11 @@ foreach ($k in $mcpServers.Keys) {
 }
 $tomlContent = $tomlLines -join "`n"
 $codexConfigPath = "$codexDir\config.toml"
-if (Test-Path $codexConfigPath) {
-    Add-Content $codexConfigPath "`n$tomlContent"
-} else {
-    $tomlContent | Out-File $codexConfigPath -Encoding UTF8
-}
+# Overwrite rather than append. $mcpServers above is already the full, rebuilt set for
+# this run - appending instead (as this used to) wrote a second [mcp_servers.*] table
+# for every server on every re-run of this phase, which is invalid/ambiguous TOML and
+# exactly the duplication bug already fixed for the PowerShell alias block.
+$tomlContent | Out-File $codexConfigPath -Encoding UTF8
 Write-Host "  OK Codex CLI -> $codexConfigPath (TOML)" -ForegroundColor DarkGray
 
 if ($failedMcps.Count -gt 0) {

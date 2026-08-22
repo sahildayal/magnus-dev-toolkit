@@ -7,6 +7,19 @@ if ($env:GITHUB_ACTIONS -eq 'true') { $CI = $true }
 
 $ErrorActionPreference = 'SilentlyContinue'
 
+# Every core/opt-in tool in the manifest installs via winget. It ships with Windows 11
+# and current Windows 10 builds via the App Installer Store package, but older or
+# offline-imaged Windows 10 machines can be missing it entirely - in which case every
+# single install below would silently fail one at a time with no clear cause. Fail
+# fast with the actual fix instead.
+if (-not ($CI) -and -not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    Write-Warning "winget not found. It ships with Windows 11 and most current Windows 10 installs,"
+    Write-Warning "but yours doesn't have it (or App Installer needs updating)."
+    Write-Warning "Install/update it from the Microsoft Store: https://apps.microsoft.com/detail/9nblggh4nns1"
+    Write-Warning "Then re-run this phase."
+    exit 1
+}
+
 $userConfigPath = "$PSScriptRoot\..\..\state\user-config.json"
 $manifestPath = "$PSScriptRoot\..\..\config\tools-manifest.json"
 

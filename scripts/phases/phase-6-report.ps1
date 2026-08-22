@@ -35,10 +35,10 @@ function Format-Report {
   
   Write-Host "🔧 ENVIRONMENT CONFIGURED" -ForegroundColor Green
   Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  Write-Host "  OK Git configured"
-  Write-Host "  OK Environment variables set"
+  Write-Host "  OK Git identity checked (only filled in if it was missing)"
+  Write-Host "  OK Environment variables set for whatever was actually installed"
   Write-Host "  OK PowerShell profile updated with aliases"
-  Write-Host "  OK VS Code extensions installed"
+  Write-Host "  OK VS Code extensions installed (if VS Code was found on PATH)"
   Write-Host "  OK MCP servers registered"
   Write-Host "  OK mcp-router recommendation engine active"
   Write-Host ""
@@ -50,23 +50,15 @@ function Format-Report {
   Write-Host "  3. Ask mcp-router for smart recommendations"
   Write-Host ""
 
-  Write-Host "⚡ QUICK COMMANDS" -ForegroundColor Cyan
-  Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  Write-Host "  magnus-token-status      # Check token status"
-  Write-Host "  magnus-update            # Update toolkit"
-  Write-Host "  magnus-check-versions    # Verify all tools"
-  Write-Host "  magnus-reset             # Reset configuration"
-  Write-Host ""
-  
   Write-Host "🎯 FIRST STEPS" -ForegroundColor Magenta
   Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  Write-Host "  Example 1 - Ask for MCP Recommendation:"
-  Write-Host "    You:   'Analyze GitHub repos for security issues'"
-  Write-Host "    Route: 'Use GitHub MCP — faster, safer, cheaper'"
-  Write-Host ""
-  Write-Host "  Example 2 - Cost-Aware Recommendation:"
-  Write-Host "    You:   'Generate 500 lines of code'"
-  Write-Host "    Route: 'Use Codex (10x cheaper than Claude)'"
+  Write-Host "  1. Open Gemini CLI / Cline / Codex and run: /mcp"
+  Write-Host "     Confirm the MCPs you configured actually show up (see state\mcp-validation.json"
+  Write-Host "     for which ones passed a real handshake in this run)."
+  Write-Host "  2. Ask mcp-router for a recommendation, e.g.:"
+  Write-Host "       You:   'search github repos and code'"
+  Write-Host "       Route: 'Use GitHub MCP' (scored on capability + keyword + a static"
+  Write-Host "              per-MCP cost-efficiency heuristic - see docs\MCP_ROUTER_GUIDE.md)"
   Write-Host ""
   
   Write-Host "📚 DOCUMENTATION" -ForegroundColor Blue
