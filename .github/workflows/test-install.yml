@@ -16,15 +16,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Verify Node and npm versions
+      # No actions/setup-node here, deliberately: hosted runner images cache Node.js
+      # in hostedtoolcache but don't put it on PATH until a setup-node-style action
+      # explicitly does so. Leaving it out means npm is genuinely absent when Phase 2
+      # runs below, for real - the only way to actually prove the auto-bootstrap path
+      # (Phase 2 installing Node.js on demand for npm-based core tools like Claude
+      # Code, when the user never selected Node.js as a language) instead of just
+      # exercising the trivial "npm already present" branch.
+      - name: Verify npm is genuinely absent before Phase 2 (so the bootstrap test below is real, not a no-op)
+        shell: pwsh
         run: |
-          node --version
-          npm --version
+          if (Get-Command npm -ErrorAction SilentlyContinue) { throw "FAIL: npm is already on PATH - the Node.js auto-bootstrap path below would not be a real test" }
+          Write-Host "OK npm is not present yet - Phase 2's bootstrap will be exercised for real"
 
       - name: Create representative-subset user-config (Python + kubectl + GitHub MCP; Docker Desktop excluded, needs nested virtualization unavailable on hosted runners)
         shell: pwsh
@@ -59,7 +62,7 @@ jobs:
         shell: pwsh
         run: |
           $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          $checks = @("git", "gh", "rg", "fzf", "bat", "jq", "delta", "lazygit", "curl", "wget", "uvx", "sqlite3", "python", "kubectl", "claude")
+          $checks = @("git", "gh", "rg", "fzf", "bat", "jq", "delta", "lazygit", "curl", "wget", "uvx", "sqlite3", "python", "kubectl", "node", "npm", "claude")
           $missing = @()
           foreach ($cmd in $checks) {
             if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) { $missing += $cmd }
@@ -139,6 +142,9 @@ jobs:
       - name: Verify mcp-router scoring end-to-end (real stdio MCP call)
         shell: pwsh
         run: |
+          # No actions/setup-node in this job (see above) - refresh PATH from the
+          # registry so this step's own `node` call can find what Phase 2 installed.
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
           $routerPath = "$env:USERPROFILE\.local\lib\mcp-servers\mcp-router\src\router.js"
           if (-not (Test-Path $routerPath)) { throw "FAIL: router.js not found at $routerPath" }
           $env:MCP_ROUTER_CONFIG = "$env:USERPROFILE\.config\magnus\mcp-manifest.json"

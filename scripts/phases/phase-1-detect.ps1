@@ -9,10 +9,31 @@ $state = @{
 $manifestPath = "$PSScriptRoot\..\..\config\tools-manifest.json"
 $manifest = Get-Content $manifestPath | ConvertFrom-Json
 
+# Not every real install lands on PATH. Verified on a real machine: Google Chrome
+# installs and runs fine but never adds "chrome" to PATH, so a plain Get-Command
+# reports it as missing even though it's there - the same is true of several other
+# GUI installers (e.g. 7-Zip). Windows itself tracks these via the "App Paths"
+# registry key regardless of PATH, so fall back to it before concluding "missing".
+function Test-ToolInstalled {
+    param([string]$Command)
+    $cmd = Get-Command $Command -ErrorAction SilentlyContinue | Where-Object { $_.CommandType -eq 'Application' } | Select-Object -First 1
+    if ($cmd) { return $cmd }
+
+    $exeName = if ($Command -match '\.exe$') { $Command } else { "$Command.exe" }
+    foreach ($hive in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths', 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths')) {
+        $key = Join-Path $hive $exeName
+        if (Test-Path $key) {
+            $exePath = (Get-Item $key).GetValue('')
+            if ($exePath -and (Test-Path $exePath)) {
+                return [PSCustomObject]@{ Source = $exePath; CommandType = 'Application'; Version = $null }
+            }
+        }
+    }
+    return $null
+}
+
 foreach ($tool in $manifest.tools) {
-  # Only CommandType 'Application' counts as detected - Windows PowerShell 5.1 ships
-  # built-in curl/wget aliases (-> Invoke-WebRequest) that would otherwise report as installed.
-  $installed = & { Get-Command $tool.command -ErrorAction SilentlyContinue | Where-Object { $_.CommandType -eq 'Application' } | Select-Object -First 1 }
+  $installed = Test-ToolInstalled -Command $tool.command
   if ($installed) {
     $state.detected[$tool.name] = if ($installed.Version) { $installed.Version.ToString() } else { "unknown" }
   } else {

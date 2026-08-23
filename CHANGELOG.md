@@ -22,6 +22,69 @@ Scope note: this adds *installation* only. Claude Code's own MCP config
 (`~/.claude.json`) is not written by Phase 4 - that file also holds auth/session
 state, and merging into it safely is a separate piece of work, not requested here.
 
+**A second production-readiness pass, closing gaps the first one left documented
+rather than fixed:**
+
+- **`mcp-router`'s manifest was missing 8 of 11 configured MCPs.** Added scoring
+  entries for Chrome DevTools, Filesystem, Memory, Git, Fetch, Sentry, Figma, and
+  Docker (previously only GitHub, PostgreSQL, and Playwright had one). Also fixed
+  `id: "postgresql"` -> `"postgres"` to match the key Phase 4 actually registers it
+  under.
+- **That change immediately crashed `recommend_mcp`.** The new entries don't have a
+  `costProfile` (no real usage data to base one on), and `router.js` accessed
+  `bestMcp.costProfile.preferredModel` unconditionally - every recommendation involving
+  one of them threw. Fixed to treat `costProfile` as optional, matching what
+  `costOptimizer.js`'s own scoring already assumed.
+- **Keyword matching had a substring-collision bug.** Plain `task.includes(keyword)`
+  matches anywhere, so short/generic keywords matched inside unrelated words -
+  reproduced: GitHub's keyword `"repo"` matched inside "crash **repo**rts", so a
+  Sentry-flavored task got recommended GitHub. Switched to whole-word matching.
+- **...which then broke plain plurals.** Whole-word matching alone made `"files"` stop
+  matching keyword `"file"` - reproduced: "read and write files on disk" no longer
+  matched Filesystem at all. Added a small stemmer (strips common
+  plural/`-ing`/`-ed` suffixes on both sides before comparing) so "reports" still
+  correctly misses "repo" while "files" still correctly hits "file".
+- **A flat scoring floor was erasing real signal.** Any match count from 1 up to
+  "most of the list" rounded up to the same fixed floor score, so an MCP matching 2
+  keywords could tie an MCP matching only 1 - reproduced: "inspect this figma design
+  file" tied Figma (matched "figma" + "design") against Filesystem (matched only
+  "file"), and the tie-break silently favored whichever appeared first in the
+  manifest. The floor now scales with match count instead of flattening to one value.
+- **Unrelated tasks got a confidently-worded recommendation anyway.** With no
+  capability/keyword match at all, the "best" MCP was chosen purely by whichever had
+  the lowest fabricated cost estimate - reproduced: "what's the weather like today"
+  reliably recommended PostgreSQL MCP, worded exactly like a real match. `recommend_mcp`
+  now says plainly when nothing matched instead of asserting one.
+- **`mcp-router`'s own SDK dependency was 20+ minor versions stale and had a known
+  high-severity advisory** (`@modelcontextprotocol/sdk@0.6.1`, GHSA-w48q-cv73-mx4w -
+  missing DNS rebinding protection). Bumped to `^1.24.0` (resolves 1.30.0, 0
+  vulnerabilities per `npm audit`) and verified `index.js`'s low-level `Server` API
+  still works unchanged against the new major version - real handshake, real
+  `recommend_mcp` tool call, both confirmed via the same MCP client SDK Phase 4b uses.
+  `mcp-router/package-lock.json` is now committed so this stays pinned to what was
+  actually tested.
+- **Chrome (and likely other GUI-installed tools) was undetectable.** Verified on a
+  real machine with Chrome already installed: `Get-Command chrome` fails because
+  Chrome's installer never adds itself to PATH, so both Phase 1's detection and Phase
+  2's "already installed, skip" check reported it as missing every time. Both now fall
+  back to the Windows "App Paths" registry key before concluding a tool is absent -
+  confirmed this correctly flips Chrome to detected on the same machine.
+- **`state/user-config.json` and `state/installation-state.json` were committed to the
+  repo.** Both are generated per-run, but were checked in with real (and in one case,
+  wrong-encoding / stale) content. Since `install.ps1 -SkipInteractive` reads
+  `user-config.json` if it exists, a fresh clone using the silent-install path would
+  have silently picked up someone else's old wizard answers instead of getting a blank
+  slate. Removed from git and `.gitignore` now covers all of `state/`.
+- **CI's Node.js-bootstrap test was previously provably a no-op.** `actions/setup-node`
+  put npm on the runner before Phase 2 ever ran, so the branch that installs Node.js
+  on-demand for npm-based core tools (Claude Code) when npm is missing never actually
+  executed - documented as a known gap rather than shipped as fixed. `actions/setup-node`
+  is now removed from the job entirely; CI asserts npm is genuinely absent right before
+  Phase 2, then asserts `node`/`npm`/`claude` are all present right after - so the
+  bootstrap path now has real, not incidental, proof.
+
+---
+
 - **Phase 4 corrupted `~/.codex/config.toml` on every re-run.** It appended a fresh
   `[mcp_servers.*]` table for every configured server instead of overwriting, so
   re-running Phase 4 (e.g. to add a token or fix an MCP) wrote duplicate TOML tables

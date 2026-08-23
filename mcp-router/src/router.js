@@ -10,6 +10,7 @@ export async function recommendMcp(taskDescription) {
 
     let bestScore = -1;
     let bestMcp = null;
+    let bestCapabilityScore = 0;
     let scores = [];
 
     for (const mcp of manifest.mcpServers) {
@@ -20,11 +21,15 @@ export async function recommendMcp(taskDescription) {
       // capabilityScore already returns Capability Match and Keyword Match combined out of 80
 
       const totalScore = capabilityScore + (costEfficiency * 0.2);
-      scores.push({ id: mcp.id, name: mcp.name, score: totalScore, preferredModel: mcp.costProfile.preferredModel });
+      // costProfile is optional - not every MCP has a measured token/model estimate,
+      // and a missing one should just fall back to the neutral default cost score
+      // analyzeCost() already returns, not crash the whole recommendation.
+      scores.push({ id: mcp.id, name: mcp.name, score: totalScore, preferredModel: mcp.costProfile?.preferredModel });
 
       if (totalScore > bestScore) {
         bestScore = totalScore;
         bestMcp = mcp;
+        bestCapabilityScore = capabilityScore;
       }
     }
 
@@ -32,9 +37,21 @@ export async function recommendMcp(taskDescription) {
       return "No suitable MCP found for the given task.";
     }
 
+    // If nothing actually matched a capability or keyword, the winner was chosen
+    // purely by the cost-efficiency tiebreaker (max possible: 100 x 20% = 20) - not
+    // because it's actually relevant. Verified reproducible: an unrelated task like
+    // "what's the weather today" was confidently getting "Recommend using PostgreSQL
+    // MCP" every time, just because Postgres has the cheapest cost estimate of the
+    // MCPs that have one. Say so plainly instead of asserting a match that isn't there.
+    if (bestCapabilityScore === 0) {
+      return `No MCP clearly matches this task (nothing matched on capability or keyword). Closest weak guess: **${bestMcp.name}**, but treat that as a low-confidence tiebreak, not a real recommendation.\n`;
+    }
+
     let response = `✅ Recommend using **${bestMcp.name}** for this task.\n`;
     response += `Reason: ${bestMcp.description}\n`;
-    response += `Preferred Model: ${bestMcp.costProfile.preferredModel} (${bestMcp.costProfile.reasoning})\n`;
+    if (bestMcp.costProfile) {
+      response += `Preferred Model: ${bestMcp.costProfile.preferredModel} (${bestMcp.costProfile.reasoning})\n`;
+    }
 
     return response;
   } catch (error) {

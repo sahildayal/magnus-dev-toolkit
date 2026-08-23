@@ -16,7 +16,7 @@
       }
     },
     {
-      "id": "postgresql",
+      "id": "postgres",
       "name": "PostgreSQL MCP",
       "description": "Database queries and schema introspection",
       "capabilities": ["sql", "database", "query", "schema", "tables"],
@@ -50,6 +50,140 @@
         "estimatedTokensPer100Calls": 8000,
         "preferredModel": "claude",
         "reasoning": "Claude performs well with complex UI automation reasoning"
+      }
+    },
+    {
+      "id": "chrome",
+      "name": "Chrome DevTools MCP",
+      "description": "Browser inspection - screenshots, console logs, network requests, performance traces",
+      "capabilities": [
+        "screenshot",
+        "console_logs",
+        "network_inspection",
+        "performance_trace",
+        "browser"
+      ],
+      "scoringRules": {
+        "keywords": [
+          "screenshot",
+          "chrome",
+          "devtools",
+          "console",
+          "network request",
+          "performance",
+          "lighthouse"
+        ],
+        "weight": 1.0
+      }
+    },
+    {
+      "id": "filesystem",
+      "name": "Filesystem MCP",
+      "description": "Read, write, and search local files and directories",
+      "capabilities": [
+        "file_read",
+        "file_write",
+        "file_search",
+        "directory_listing"
+      ],
+      "scoringRules": {
+        "keywords": [
+          "file",
+          "folder",
+          "directory",
+          "read file",
+          "write file",
+          "filesystem"
+        ],
+        "weight": 1.0
+      }
+    },
+    {
+      "id": "memory",
+      "name": "Memory MCP",
+      "description": "Persistent knowledge graph for remembering context across sessions",
+      "capabilities": [
+        "knowledge_graph",
+        "persistent_memory",
+        "context_storage"
+      ],
+      "scoringRules": {
+        "keywords": [
+          "remember",
+          "memory",
+          "recall",
+          "knowledge graph",
+          "persist"
+        ],
+        "weight": 1.0
+      }
+    },
+    {
+      "id": "git",
+      "name": "Git MCP",
+      "description": "Local git operations - log, diff, status, branches, commits",
+      "capabilities": ["version_control", "git_log", "git_diff", "local_repo"],
+      "scoringRules": {
+        "keywords": [
+          "git",
+          "commit",
+          "branch",
+          "diff",
+          "local repo",
+          "git log"
+        ],
+        "weight": 1.0
+      }
+    },
+    {
+      "id": "fetch",
+      "name": "Fetch MCP",
+      "description": "Fetch and read the content of a URL",
+      "capabilities": ["web_fetch", "http_request", "url_content"],
+      "scoringRules": {
+        "keywords": ["fetch", "url", "http", "webpage", "download page"],
+        "weight": 1.0
+      }
+    },
+    {
+      "id": "sentry",
+      "name": "Sentry MCP",
+      "description": "Query error tracking - issues, stack traces, crash reports",
+      "capabilities": [
+        "error_tracking",
+        "issue_triage",
+        "stack_trace_analysis"
+      ],
+      "scoringRules": {
+        "keywords": ["sentry", "error", "exception", "stack trace", "crash"],
+        "weight": 1.0
+      }
+    },
+    {
+      "id": "figma",
+      "name": "Figma MCP",
+      "description": "Read Figma design files - components, styles, tokens",
+      "capabilities": ["design_inspection", "design_tokens", "figma_file_read"],
+      "scoringRules": {
+        "keywords": [
+          "figma",
+          "design",
+          "mockup",
+          "ui design",
+          "component",
+          "design token"
+        ],
+        "weight": 1.0
+      }
+    },
+    {
+      "id": "docker",
+      "name": "Docker MCP Gateway",
+      "description": "Manage Docker containers and images via Docker Desktop's MCP Gateway",
+      "capabilities": ["container_management", "docker_gateway"],
+      "scoringRules": {
+        "keywords": ["docker", "container", "image", "compose"],
+        "weight": 1.0
       }
     }
   ]

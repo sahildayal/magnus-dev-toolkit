@@ -1,8 +1,9 @@
-# Phase 4b stages the MCP client SDK here to validate servers - generated, never commit
-state/mcp-probe/
-
-# Per-run validation output (CI still uploads it as a build artifact)
-state/mcp-validation.json
+# Everything under state/ is generated per-run (wizard answers, detection results,
+# validation output, the staged MCP probe). None of it belongs in the repo - a
+# user-config.json checked in here would get silently picked up by `install.ps1
+# -SkipInteractive` on a fresh clone, install-state.json only reflects whoever last
+# ran the wizard, and the MCP probe SDK is reinstalled fresh every run anyway.
+state/
 
 node_modules/
 npm-debug.log*
