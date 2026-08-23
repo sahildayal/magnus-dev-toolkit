@@ -116,6 +116,7 @@ What CI genuinely does **not** cover, stated plainly:
 | **The 13 opt-in power tools** | Not selected in the representative CI run, to keep it fast | Their winget IDs are all verified live against `winget show`, and they install through the same verified code path as the core tools — but no end-to-end install proof |
 | **Other languages / cloud CLIs** | Same reason — CI installs Python + kubectl as representatives | Same as above: verified IDs, shared code path, no per-tool proof |
 | **Real Gemini CLI / Cline / Codex** | CI verifies the config *files* are written in each CLI's documented format, but never launches those CLIs | If a CLI changes its config schema, the files would still be written and validated while that CLI silently ignores them. Phase 4 prints a reminder to run `/mcp` once and confirm |
+| **Phase 2's Node.js auto-bootstrap for npm-installed core tools** (Claude Code) | Tried forcing a genuinely npm-less CI runner to test this for real; verified empirically that `windows-latest` ships npm on PATH out of the box regardless of `actions/setup-node`, so there's no way to produce that starting state on hosted CI | Untested on the one machine shape it exists for. Logic is straightforward (reuses the same verified winget install path used for every other core tool) but has no end-to-end proof |
 
 The MCP servers themselves are the strongly-tested part: each one completes a real protocol handshake and tool listing on every push.
 

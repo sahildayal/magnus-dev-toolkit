@@ -16,18 +16,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # No actions/setup-node here, deliberately: hosted runner images cache Node.js
-      # in hostedtoolcache but don't put it on PATH until a setup-node-style action
-      # explicitly does so. Leaving it out means npm is genuinely absent when Phase 2
-      # runs below, for real - the only way to actually prove the auto-bootstrap path
-      # (Phase 2 installing Node.js on demand for npm-based core tools like Claude
-      # Code, when the user never selected Node.js as a language) instead of just
-      # exercising the trivial "npm already present" branch.
-      - name: Verify npm is genuinely absent before Phase 2 (so the bootstrap test below is real, not a no-op)
-        shell: pwsh
+      # Tried removing this to force a genuinely npm-less start (to prove Phase 2's
+      # Node.js auto-bootstrap for npm-based core tools actually engages) - verified
+      # empirically that windows-latest ships npm on PATH out of the box regardless,
+      # so that plan doesn't work. Restored; the bootstrap branch stays a documented,
+      # not end-to-end-proven, gap (see README Known limitations).
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify Node and npm versions
         run: |
-          if (Get-Command npm -ErrorAction SilentlyContinue) { throw "FAIL: npm is already on PATH - the Node.js auto-bootstrap path below would not be a real test" }
-          Write-Host "OK npm is not present yet - Phase 2's bootstrap will be exercised for real"
+          node --version
+          npm --version
 
       - name: Create representative-subset user-config (Python + kubectl + GitHub MCP; Docker Desktop excluded, needs nested virtualization unavailable on hosted runners)
         shell: pwsh
@@ -142,9 +144,6 @@ jobs:
       - name: Verify mcp-router scoring end-to-end (real stdio MCP call)
         shell: pwsh
         run: |
-          # No actions/setup-node in this job (see above) - refresh PATH from the
-          # registry so this step's own `node` call can find what Phase 2 installed.
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
           $routerPath = "$env:USERPROFILE\.local\lib\mcp-servers\mcp-router\src\router.js"
           if (-not (Test-Path $routerPath)) { throw "FAIL: router.js not found at $routerPath" }
           $env:MCP_ROUTER_CONFIG = "$env:USERPROFILE\.config\magnus\mcp-manifest.json"

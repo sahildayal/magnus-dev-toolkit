@@ -75,13 +75,14 @@ rather than fixed:**
   `user-config.json` if it exists, a fresh clone using the silent-install path would
   have silently picked up someone else's old wizard answers instead of getting a blank
   slate. Removed from git and `.gitignore` now covers all of `state/`.
-- **CI's Node.js-bootstrap test was previously provably a no-op.** `actions/setup-node`
-  put npm on the runner before Phase 2 ever ran, so the branch that installs Node.js
-  on-demand for npm-based core tools (Claude Code) when npm is missing never actually
-  executed - documented as a known gap rather than shipped as fixed. `actions/setup-node`
-  is now removed from the job entirely; CI asserts npm is genuinely absent right before
-  Phase 2, then asserts `node`/`npm`/`claude` are all present right after - so the
-  bootstrap path now has real, not incidental, proof.
+- **Tried, and failed, to make CI prove the Node.js-bootstrap path for real.** It was
+  previously a no-op: `actions/setup-node` put npm on the runner before Phase 2 ever
+  ran, so the branch that installs Node.js on-demand for npm-based core tools (Claude
+  Code) when npm is missing never actually executed. Removing `actions/setup-node`
+  seemed like the fix, but CI immediately failed a "verify npm is absent" check -
+  turns out `windows-latest` ships npm on PATH out of the box regardless. Reverted;
+  this stays a documented, not end-to-end-proven, gap (see README Known limitations)
+  rather than a false "now tested" claim.
 
 ---
 
